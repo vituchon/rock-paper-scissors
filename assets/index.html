@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js" integrity="sha256-kmHvs0B+OpCW5GVHUNjv9rOmY0IvSIRcf7zGUDTDQM8=" crossorigin="anonymous"></script>
+
+  <script type="text/javascript" src="/assets/server-api.js"></script>
+  <script type="text/javascript" src="/assets/ws.js"></script>
+
+  <link rel="stylesheet" type="text/css" href="/assets/toastr.css">
+  <script type="text/javascript" src="/assets/toastr.js"></script>
+
+  <title>Piedra, Papel y Tijera</title>
+  <style>
+    body {
+      background: linear-gradient(120deg, #f6d365, #fda085);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      width: 90%;
+      max-width: 400px;
+      padding: 20px;
+      text-align: center;
+      position: relative;
+    }
+
+    .title {
+      font-size: 1.5em;
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .nickname {
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 1em;
+    }
+
+    .emotar-list {
+      max-height: 200px;
+      overflow-y: scroll;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, 50px);
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .emotar, .weapon{
+      font-size: 1.8em;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.8s ease, top 0.8s ease, left 0.8s ease;
+      position: relative;
+    }
+
+    .weapon {
+      font-size: 1em;
+    }
+
+    .emotar:hover, .weapon:hover {
+      transform: scale(1.2);
+      transition: 0.2s;
+    }
+
+    .confirm {
+      margin-top: 15px;
+      padding: 10px 20px;
+      background: #fda085;
+      border: none;
+      color: white;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .confirm:hover {
+      background: #f6d365;
+    }
+
+    .confirm:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #confirm-weapon-choice.confirm {
+      background-color: grey;
+    }
+
+    .selected-emotar {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(3);
+      font-size: 3em;
+      transition: all 0.8s ease;
+    }
+
+    .fade-out {
+      opacity: 0 !important;
+      transition: opacity 1s ease;
+    }
+
+    .fade-in {
+      opacity: 1 !important;
+      transition: opacity 1s ease;
+    }
+
+    #selected-nickname {
+      opacity: 0;
+      color: white;
+      font-size: 2em;
+    }
+
+    #weapon-selection {
+      display: flex;
+      flex-direction: row;
+      width: 100%;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .explosion {
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, rgba(255,255,0,1) 0%, rgba(255,69,0,1) 60%, rgba(0,0,0,0) 100%);
+  border-radius: 50%;
+  opacity: 0.8;
+  animation: explode 1s ease-out forwards;
+}
+
+@keyframes explode {
+  0% {
+    transform: scale(0.5);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+  </style>
+</head>
+<body>
+  <script>
+    document.addEventListener('keydown', function(event) {
+      if (event.ctrlKey && event.key === 'x') {
+        ServerApi.DefaultService.deleteAllGames()
+      }
+    });
+  </script>
+  <div id="delete-games-button-container">
+    <button id="delete-games-button">
+      🗑️ Borrar Juegos
+    </button>
+  </div>
+
+  <div id="sound-button-container">
+    <button id="sound-button">
+      🔊 Sonido
+    </button>
+  </div>
+
+  <style>
+    #delete-games-button-container,
+    #sound-button-container {
+      position: fixed;
+      z-index: 1000;
+    }
+
+    #delete-games-button-container {
+      top: 10px;
+      left: 10px;
+    }
+
+    #delete-games-button {
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: white;
+      font-size: 16px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    #delete-games-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    #delete-games-button:active {
+      transform: scale(0.95);
+      box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    #sound-button-container {
+      top: 10px;
+      right: 10px;
+    }
+
+    #sound-button {
+      background: linear-gradient(135deg, #3498db, #2980b9);
+      color: white;
+      font-size: 16px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    #sound-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    #sound-button:active {
+      transform: scale(0.95);
+      box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.3);
+    }
+  </style>
+  <script>
+    document.getElementById('delete-games-button').addEventListener('click', () => {
+      const confirmDelete = confirm('¿Estás seguro de que deseas borrar todos los juegos? Esta acción no se puede deshacer.');
+      if (confirmDelete) {
+        try {
+          ServerApi.DefaultService.deleteAllGames();
+          displayMessage('¡Todos los juegos han sido borrados con éxito!');
+        } catch (error) {
+          console.error('Error al borrar los juegos:', error);
+          displayMessage('Hubo un error al intentar borrar los juegos.');
+        }
+      }
+    });
+
+    let isMuted = false;
+    document.getElementById('sound-button').addEventListener('click', () => {
+      isMuted = !isMuted;
+      const soundButton = document.getElementById('sound-button');
+      if (isMuted) {
+        soundButton.textContent = '🔇 Mute';
+      } else {
+        soundButton.textContent = '🔊 Sonido';
+      }
+    });
+
+  </script>
+
+  <div id="emotar-selector" class="container" >
+    <div class="title">Selecciona tu Emotar</div>
+    <div class="emotar-list" id="emotar-list">
+      <!-- Emotars se cargarán aquí -->
+    </div>
+    <input type="text" id="nickname" class="nickname" placeholder="Apodo...">
+    <button id="confirm-emotar" class="confirm" disabled>Confirmar</button>
+  </div>
+  <div id="view-nickname" style="font-size: 3em;"></div>
+
+
+  <div id="game-area" style="display: none; flex-direction: column; align-items: center; justify-content: center;">
+    <div id="enemy-place">
+      <span id="enemy-player-description" style="font-size: 2em;"></span>
+    </div>
+    <div id="no-man-land" class="container">
+      <div style="width: 30vw; height: 18vw; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <button id="start-game" style="display: none; opacity: 0; font-size: 3em;" disabled>Comenzar</button>
+        <button id="resolve-game" style="display: none; opacity: 0; font-size: 3em;">Resolver</button>
+        <button id="restart-game" style="display: none; opacity: 0; font-size: 3em;">Otra vuelta!</button>
+        <span id="winner-player-description">
+          <span id="winner-player-name" style="font-size: 2em;"></span>
+          &nbsp;<span id="winner-player-crown" style="font-size: 3em;"></span>
+        </span>
+        <span id="move-descriptions">
+          <span id="player-1-move-description"></span>
+          &nbsp;&nbsp;
+          <span id="player-2-move-description"></span>
+        </span>
+      </div>
+    </div>
+    <div id="weapon-selection">
+      <div id="weapon-options" class="weapons" style="display: flex; flex-direction: row; font-size: 2em; opacity: 0.5;">
+        <div class="weapon" data-choice="rock">✊</div>
+        <div class="weapon" data-choice="paper">✋</div>
+        <div class="weapon" data-choice="scissors">✌️</div>
+      </div>
+      <div>&nbsp;</div>
+      <button id="confirm-weapon-choice" class="confirm" disabled>Confirmar</button>
+      <span id="client-player-description" style="opacity: 0; font-size: 2em;"></span>
+    </div>
+  </div>
+
+
+  <script>
+    var app = {
+        game: null,
+        clientPlayer: null,
+    };
+    function addEventIfNotRegistered(element, event, callback) {
+      const attributeName = `data-event-${event}`;
+      const isEventRegistered = element.getAttribute(attributeName);
+
+      if (!isEventRegistered || isEventRegistered === "false") {
+          element.addEventListener(event, callback);
+          element.setAttribute(attributeName, "true");
+      }
+    }
+  </script>
+  <script>
+    const confirmWeaponChoice = document.getElementById('confirm-weapon-choice');
+    const emogiWeapons = document.querySelectorAll(".weapon")
+    var selectedWeaponElement
+    emogiWeapons.forEach(emogiWeapon => {
+      emogiWeapon.onclick = () => selectWeapon(emogiWeapon);
+    });
+
+    function selectWeapon(weaponElement) {
+      if (!confirmWeaponChoice.disabled) {
+        document.querySelectorAll('.weapon').forEach(el => el.style.border = 'none');
+        weaponElement.style.border = '2px solid white';
+        selectedWeaponElement = weaponElement;
+      }
+    }
+
+    addEventIfNotRegistered(confirmWeaponChoice, 'click',async () => {
+      if (!selectedWeaponElement) return;
+
+      selectedWeaponElement.style.border = 'none';
+      confirmWeaponChoice.disabled = true;
+
+      const noManLand = document.getElementById('no-man-land');
+      const noManLandRect = noManLand.getBoundingClientRect();
+      const weaponRect = selectedWeaponElement.getBoundingClientRect();
+
+      const weaponClone = selectedWeaponElement.cloneNode(true);
+      weaponClone.style.position = 'absolute';
+      weaponClone.style.top = `${weaponRect.top}px`;
+      weaponClone.style.left = `${weaponRect.left}px`;
+      weaponClone.style.transition = 'all 0.8s ease';
+      weaponClone.style.fontSize = "2em"
+      document.body.appendChild(weaponClone);
+
+      const targetTop = noManLandRect.top + noManLandRect.height / 2;
+      const targetLeft = noManLandRect.left + noManLandRect.width / 2;
+      setTimeout(() => {
+        weaponClone.style.top = `${targetTop}px`;
+        weaponClone.style.left = `${targetLeft}px`;
+        weaponClone.style.transform = 'translate(-50%, -50%)';
+      }, 0);
+
+
+      setTimeout(() => {
+        createExplosion(targetTop - weaponRect.height - 5, targetLeft - weaponRect.width - 10);
+        weaponClone.remove();
+      }, 1000);
+
+      action  = {
+        player: app.clientPlayer,
+        weapon: selectedWeaponElement.innerText
+      }
+      app.game = await ServerApi.DefaultService.performAction(app.game, action)
+    });
+
+
+    function createExplosion(top, left) {
+      const explosion = document.createElement('div');
+      explosion.className = 'explosion';
+      explosion.style.position = 'absolute';
+      explosion.style.top = `${top}px`;
+      explosion.style.left = `${left}px`;
+      explosion.style.transform = 'translate(-50%, -50%)';
+      document.body.appendChild(explosion);
+      if (!isMuted) {
+        playExplosionSound();
+      }
+
+
+      setTimeout(() => {
+        explosion.remove();
+      }, 1000);
+    }
+
+
+    function getRandomExplosionSound() {
+      const explosionCount = 2;
+      const randomIndex = Math.floor(Math.random() * explosionCount) + 1;
+      return `/assets/explosion_1.mp3`;
+    }
+
+    function playExplosionSound() {
+      const soundFile = getRandomExplosionSound();
+      const boomSound = new Audio(soundFile);
+      boomSound.currentTime = 0;
+      boomSound.play();
+    }
+  </script>
+
+  <script>
+      function watch (oObj, sProp) {
+        var sPrivateProp = "$_"+sProp+"_$"; // to minimize the name clash risk
+        oObj[sPrivateProp] = oObj[sProp];
+
+        // overwrite with accessor
+        Object.defineProperty(oObj, sProp, {
+            get: function () {
+                return oObj[sPrivateProp];
+            },
+
+            set: function (value) {
+                //console.log("setting " + sProp + " to " + value);
+                debugger; // sets breakpoint
+                oObj[sPrivateProp] = value;
+            }
+        });
+     }
+     //watch(app,"game")
+    const emotars = [
+      "🐵", "🐶", "🐺", "🦊", "🦝", "🐱", "🦁", "🐯",
+      "🐮", "🐷", "🐭", "🐹", "🐰", "🐻", "🐨", "🐼" ];
+
+    const emotarListElement = document.getElementById('emotar-list');
+    const confirmEmotar = document.getElementById('confirm-emotar');
+
+    let selectedEmotar = null;
+
+    function renderEmotars() {
+      emotarListElement.innerHTML = '';
+      emotars.forEach(emotar => {
+        const emotarDiv = document.createElement('div');
+        emotarDiv.className = 'emotar';
+        emotarDiv.textContent = emotar;
+        emotarDiv.id = emotar
+        emotarDiv.onclick = () => selectEmotar(emotar, emotarDiv);
+        emotarListElement.appendChild(emotarDiv);
+      });
+    }
+
+    function selectEmotar(emotar, element) {
+      document.querySelectorAll('.emotar').forEach(el => el.style.border = 'none');
+      element.style.border = '2px solid #fda085';
+      selectedEmotar = emotar;
+      confirmEmotar.disabled = false;
+    }
+
+    function confirmSelectEmotar(emotar) {
+      const element = document.getElementById(emotar)
+      const rect = element.getBoundingClientRect();
+      const emotarClone = element.cloneNode(true);
+
+      emotarClone.classList.add('selected-emotar');
+      emotarClone.style.top = `${rect.top + window.scrollY}px`;
+      emotarClone.style.left = `${rect.left + window.scrollX}px`;
+      emotarClone.style.position = 'absolute';
+      emotarClone.style.border = 'none';
+
+      document.body.appendChild(emotarClone);
+      const viewNickname =  document.getElementById("view-nickname")
+      const emotarSelector = document.getElementById('emotar-selector');
+      const nicknameInput = document.getElementById('nickname')
+      new Promise((resolve) => {
+        setTimeout(async () => {
+          emotarClone.style.top = '50%';
+          emotarClone.style.left = '50%';
+          emotarClone.style.transform = 'translate(-50%, -50%) scale(3)';
+          const nickname = nicknameInput.value || generateRandonNickname();
+          viewNickname.classList.add('fade-in');
+          viewNickname.innerText = nickname
+
+          try {
+            var ws = await WebSockets.DefaultService.adquire()
+            setupWebsocket(ws)
+            console.log("Adquired ws is ", ws)
+            let player = {
+              name: nickname,
+              emotar: emotar,
+            };
+            app.clientPlayer = await ServerApi.DefaultService.registerPlayer(player);
+            let games = await ServerApi.DefaultService.getGames();
+            if (games.length === 0) {
+              const game = {
+                  name: "",
+                  owner: app.clientPlayer,
+                  players: [],
+                  started: false,
+              };
+              app.game = await ServerApi.DefaultService.createGame(game)
+            } else {
+              app.game = games[0]
+            }
+            app.game = await ServerApi.DefaultService.joinGame(app.game)
+            let enemyPlayer = app.game.players.find(player => player.id !== app.clientPlayer.id);
+            if (enemyPlayer) {
+              let enemyPlayerName = enemyPlayer.name + " " + enemyPlayer.emotar
+              displayMessage("Jugador " + enemyPlayerName + " te estaba esperando!")
+              document.getElementById("enemy-player-description").innerText = enemyPlayerName
+            }
+            checkIfGameCanStartAndModiyUI(app.game)
+            resolve()
+          } catch (err) {
+            console.error("Error synchronizing", err)
+          }
+        }, 250)
+      }).then(() => {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            emotarClone.classList.add('fade-out');
+            viewNickname.classList.remove('fade-in');
+            viewNickname.classList.add('fade-out');
+            resolve()
+          }, 1000)
+        })
+      }).then(() => {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            const gameArea = document.getElementById('game-area');
+            gameArea.style.display = "flex";
+            gameArea.style.opacity = "0";
+            gameArea.classList.add('fade-in');
+            emotarSelector.style.display = "none";
+            nicknameInput.style.display = "none";
+            resolve()
+          }, 1000)
+        }).then(() => {
+          var clientPlayerDescription = document.getElementById("client-player-description")
+          clientPlayerDescription.innerText = app.clientPlayer.name + " " + app.clientPlayer.emotar
+          clientPlayerDescription.classList.add('fade-in');
+          emotarClone.remove()
+        })
+      })
+      emotarSelector.classList.add('fade-out');
+    }
+    addEventIfNotRegistered(confirmEmotar, 'click', () => {
+      if (selectedEmotar) {
+        confirmSelectEmotar(selectedEmotar)
+      }
+    });
+
+    renderEmotars();
+
+    const adjectives = [
+      "mysterious", "happy", "brave", "curious", "playful",
+      "sneaky", "wild", "gentle", "kind", "fierce",
+      "sassy", "clever", "sleepy", "funny", "bright"
+    ];
+    function generateRandonNickname() {
+      const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)]
+      const capitalizedRandomAdjective = randomAdjective[0].toLocaleUpperCase() + randomAdjective.slice(1, randomAdjective.length)
+      return `${capitalizedRandomAdjective}`;
+    }
+  </script>
+
+  <script>
+  function setupWebsocket(webSocket) {
+    const onmessage = (event) => {
+      const notification = JSON.parse(event.data);
+      console.log("notificacion", notification)
+      switch (notification.kind) {
+        case "game-restart":
+        case "game-start":
+          app.game = notification.data.game
+          modifyUIForGameStarted(app.game)
+          break
+        case "game-match-resolved":
+
+          let resolveGame = document.getElementById("resolve-game")
+          resolveGame.classList.remove('fade-in');
+          resolveGame.classList.add('fade-out');
+
+          let restartGame = document.getElementById("restart-game")
+          restartGame.style.display = "inline-block"
+          restartGame.classList.add('fade-in');
+          addEventIfNotRegistered(restartGame,'click', restartCallback);
+
+          async function restartCallback() {
+            restartGame.classList.remove('fade-in');
+            restartGame.classList.add('fade-out');
+            app.game = await ServerApi.DefaultService.restartGame(app.game);
+          }
+
+          let i = 1
+          for (const [playerId, lastMove] of Object.entries(app.game.currentMatch.lastMoveByPlayerId)) {
+            let player = app.game.players.find(player => player.id === +playerId);
+            document.getElementById(`player-${i}-move-description`).innerText = player.emotar + ": " + lastMove.weapon
+            i++
+          }
+          let winnerPlayerId = notification.data
+          if (winnerPlayerId === 0) {
+            displayMessage("EMPATE")
+            return
+          }
+          let winnerPlayer = app.game.players.find(player => player.id === winnerPlayerId);
+          let winnerPlayerName = winnerPlayer.name + " " + winnerPlayer.emotar
+          displayMessage(winnerPlayer.emotar + " WINS")
+          document.getElementById("winner-player-name").innerText = winnerPlayer.emotar
+          document.getElementById("winner-player-crown").innerText = "👑"
+
+          break
+        case "game-end":
+          break
+        case "player-join":
+          let enemyPlayer = notification.data.player
+          let enemyPlayerName = enemyPlayer.name + " " + enemyPlayer.emotar
+          displayMessage("Jugador " + enemyPlayerName + " se ha unido!")
+          document.getElementById("enemy-player-description").innerText = enemyPlayerName
+          app.game = notification.data.game
+          checkIfGameCanStartAndModiyUI(app.game)
+          break
+        case "player-quit":
+          break
+        case "player-action":
+          app.game = notification.data.game
+          checkIfGameCanResolvedAndModifyUI(app.game)
+          break
+        default:
+          console.log("not processing ", notification?.kind);
+          break;
+      }
+    };
+    webSocket.addEventListener("message", onmessage);
+    window.addEventListener("beforeunload", () => {
+      webSocket.removeEventListener("message", onmessage);
+    });
+  }
+
+  function checkIfGameCanResolvedAndModifyUI(game) {
+    let canResolve = Object.keys(game.currentMatch.lastMoveByPlayerId).length == 2
+    if (canResolve)  {
+      displayMessage("Listo para resolver!")
+      let resolveGame = document.getElementById("resolve-game")
+      resolveGame.style.display = "inline-block"
+      resolveGame.classList.add('fade-in');
+      setTimeout(() => {
+        addEventIfNotRegistered(resolveGame,'click', resolveCallback);
+      }, 1000);
+      async function resolveCallback() {
+        await ServerApi.DefaultService.resolveCurrentMatch(app.game);
+      }
+    } else {
+      let lastClientPlayerMove = app.game.currentMatch.lastMoveByPlayerId[app.clientPlayer.id]
+      if (!lastClientPlayerMove) {
+        displayMessage("Enimigo ya elegió!")
+      }
+    }
+
+  }
+
+  function checkIfGameCanStartAndModiyUI(game) {
+    if (game.players.length === 2) {
+      displayMessage("Listo para comenzar!")
+
+      let beginGame = document.getElementById("start-game")
+      beginGame.style.display = "inline-block"
+      beginGame.classList.add('fade-in');
+      setTimeout(() => {
+        beginGame.disabled = false;
+        addEventIfNotRegistered(beginGame, 'click', startGameCallback);
+      }, 1000);
+      async function startGameCallback() {
+        app.game = await ServerApi.DefaultService.startGame(app.game);
+      }
+    }
+  }
+
+  function modifyUIForGameStarted(game) {
+    displayMessage("El juego comenzo!")
+    document.getElementById("winner-player-name").innerText = ""
+    document.getElementById("winner-player-crown").innerText = ""
+    for (let i = 1; i <= 2; i++) {
+      document.getElementById(`player-${i}-move-description`).innerText = ""
+    }
+    const weaponOptions = document.getElementById("weapon-options")
+    weaponOptions.style.opacity = 1
+    let beginGame = document.getElementById("start-game")
+    beginGame.disabled = true;
+    beginGame.classList.remove('fade-in');
+    beginGame.classList.add('fade-out');
+    const confirmWeaponChoice = document.getElementById('confirm-weapon-choice');
+    confirmWeaponChoice.disabled = false
+  }
+
+  function displayMessage(message) {
+    Toastify({
+      text: message,
+      duration: 4500,
+      newWindow: true,
+      gravity: "top",
+      position: 'left',
+    }).showToast();
+  }
+  </script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+package main
+
+import (
+	"context"
+	"html/template"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"os"
+	"time"
+
+	"github.com/vituchon/escobita/presentation/util"
+	"github.com/vituchon/rock-paper-scissors/controllers"
+
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
+	"github.com/gorilla/securecookie"
+)
+
+func main() {
+	StartServer()
+}
+
+const (
+	storeKeyFilePath = ".ss" // the file were the actual key is stored
+)
+
+func retrieveCookieStoreKey(filepath string) (key []byte, err error) {
+	if util.FileExists(filepath) {
+		key, err = ioutil.ReadFile(storeKeyFilePath)
+	} else {
+		key = securecookie.GenerateRandomKey(32)
+		ioutil.WriteFile(storeKeyFilePath, key, 0644)
+	}
+	return
+}
+
+func StartServer() {
+	key, err := retrieveCookieStoreKey(storeKeyFilePath)
+	if err != nil {
+		log.Printf("Unexpected error while retrieving cookie store key: %v", err)
+		return
+	}
+	controllers.InitSessionStore(key)
+
+	router := buildRouter()
+	port := getenv("PORT", "9999")
+	server := &http.Server{
+		Addr:         ":" + port,
+		Handler:      router,
+		ReadTimeout:  40 * time.Second,
+		WriteTimeout: 300 * time.Second,
+	}
+	log.Printf("Piedra papel y tijera web server listening at port %v", server.Addr)
+	err = server.ListenAndServe()
+	if err != nil {
+		log.Println("Unexpected error initiliazing piedra papel y tijera web server: ", err)
+	}
+
+	// TODO (for greater good) : Perhaps we are now in condition to add https://github.com/gorilla/mux#graceful-shutdown
+}
+
+func getenv(key, fallback string) string {
+	value := os.Getenv(key)
+	if len(value) == 0 {
+		return fallback
+	}
+	return value
+}
+
+func buildRouter() *mux.Router {
+	router := mux.NewRouter()
+	router.NotFoundHandler = http.HandlerFunc(NoMatchingHandler)
+
+	assetsFileServer := http.FileServer(http.Dir("./"))
+	assetsRouter := router.PathPrefix("/assets").Subrouter()
+	assetsRouter.PathPrefix("/").Handler(assetsFileServer)
+
+	rootRouter := router.PathPrefix("/").Subrouter()
+	rootRouter.Use(AccessLogMiddleware, ClientSessionAwareMiddleware)
+
+	rootGet := BuildSetHandleFunc(rootRouter, "GET")
+	rootGet("/", serveRoot)
+	rootGet("/healthcheck", controllers.Healthcheck)
+	rootGet("/version", controllers.Version)
+
+	rootGet("/adquire-ws", controllers.AdquireWebSocket)
+	rootGet("/release-ws", controllers.ReleaseWebSocket)
+	rootGet("/debug-ws", controllers.DebugWebSockets)
+	rootGet("/send-message-ws", controllers.SendMessageWebSocket)
+
+	rootGet("/send-message-all-ws", controllers.SendMessageAllWebSockets)
+	rootGet("/release-broken-ws", controllers.ReleaseBrokenWebSockets)
+	rootGet("/release-all-ws", controllers.ReleaseAllWebSockets)
+
+	apiRouter := rootRouter.PathPrefix("/api/v1").Subrouter()
+	apiGet := BuildSetHandleFunc(apiRouter, "GET")
+	apiPost := BuildSetHandleFunc(apiRouter, "POST")
+	apiDelete := BuildSetHandleFunc(apiRouter, "DELETE")
+
+	apiPost("/players/register", controllers.RegisterPlayer)
+	apiGet("/players", controllers.GetPlayers)
+
+	apiGet("/games", controllers.GetGames)
+	apiPost("/games", controllers.CreateGame)
+	apiDelete("/games", controllers.DeleteGames)
+	apiPost("/games/{id:[0-9]+}/start", controllers.StartGame)
+	apiPost("/games/{id:[0-9]+}/restart", controllers.RestartGame)
+	apiPost("/games/{id:[0-9]+}/join", controllers.JoinGame)
+	apiPost("/games/{id:[0-9]+}/quit", controllers.QuitGame)
+	apiPost("/games/{id:[0-9]+}/perform-action", controllers.PerformAction)
+	apiPost("/games/{id:[0-9]+}/resolve-current-match", controllers.ResolveCurrentGameMatch)
+
+	apiGet("/games/{id:[0-9]+}/bind-ws", controllers.BindClientWebSocketToGame)
+	apiGet("/games/{id:[0-9]+}/unbind-ws", controllers.UnbindClientWebSocketInGame)
+
+	return router
+}
+
+type setHandlerFunc func(path string, f http.HandlerFunc)
+
+// Creates a function for register a handler for a path for the given router and http methods
+func BuildSetHandleFunc(router *mux.Router, methods ...string) setHandlerFunc {
+	return func(path string, f http.HandlerFunc) {
+		router.HandleFunc(path, f).Methods(methods...)
+	}
+}
+
+func NoMatchingHandler(response http.ResponseWriter, request *http.Request) {
+	if request.URL.Path != "/favicon.ico" { // don't log this
+		log.Println("No maching route for " + request.URL.Path)
+	}
+	response.WriteHeader(http.StatusNotFound)
+}
+
+// Adds a logging handler for logging each request's in Apache Common Log Format (CLF).
+// With this middleware we ensure that each requests will be, at least, logged once.
+func AccessLogMiddleware(h http.Handler) http.Handler {
+	loggingHandler := handlers.LoggingHandler(os.Stdout, h)
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		loggingHandler.ServeHTTP(w, r)
+	})
+}
+
+func ClientSessionAwareMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		clientSession, err := controllers.GetOrCreateClientSession(request)
+		if err != nil {
+			log.Printf("error while getting client session: %v", err)
+			response.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = controllers.SaveClientSession(request, response, clientSession)
+		if err != nil {
+			log.Printf("error while saving client session: %v", err)
+			response.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		ctx := context.WithValue(request.Context(), "clientSession", clientSession)
+		h.ServeHTTP(response, request.WithContext(ctx))
+	})
+}
+
+func serveRoot(response http.ResponseWriter, request *http.Request) {
+	t, err := template.ParseFiles("./assets/index.html")
+	if err != nil {
+		log.Printf("Error while parsing template : %v", err)
+		response.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	t.Execute(response, nil)
+}
