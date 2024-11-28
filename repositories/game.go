@@ -82,7 +82,7 @@ func (game Game) ResolveMatch() int {
 	if weapon1 == "✋" && weapon2 == "✊" {
 		return player1Id
 	}
-	if weapon1 == "✌️" && weapon2 == "✊" {
+	if weapon1 == "✌️" && weapon2 == "✋" {
 		return player1Id
 	}
 	return player2Id
