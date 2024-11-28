@@ -609,7 +609,7 @@
           }
           let winnerPlayer = app.game.players.find(player => player.id === winnerPlayerId);
           let winnerPlayerName = winnerPlayer.name + " " + winnerPlayer.emotar
-          displayMessage(winnerPlayer.emotar + " WINS")
+          displayMessage(winnerPlayerName + " WINS")
           document.getElementById("winner-player-name").innerText = winnerPlayer.emotar
           document.getElementById("winner-player-crown").innerText = "👑"
 
@@ -700,10 +700,15 @@
   function displayMessage(message) {
     Toastify({
       text: message,
-      duration: 4500,
+      duration: 3000,
       newWindow: true,
       gravity: "top",
-      position: 'left',
+      position: 'center',
+      style: {
+        "font-size": "1.5em",
+        "border-radius": "0.5em",
+        "text-transform": "capitalize"
+      }
     }).showToast();
   }
   </script>
