@@ -166,6 +166,105 @@
       }
     });
   </script>
+  <div id="delete-games-button-container">
+    <button id="delete-games-button">
+      🗑️ Borrar Juegos
+    </button>
+  </div>
+
+  <div id="sound-button-container">
+    <button id="sound-button">
+      🔊 Sonido
+    </button>
+  </div>
+
+  <style>
+    #delete-games-button-container,
+    #sound-button-container {
+      position: fixed;
+      z-index: 1000;
+    }
+
+    #delete-games-button-container {
+      top: 10px;
+      left: 10px;
+    }
+
+    #delete-games-button {
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: white;
+      font-size: 16px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    #delete-games-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    #delete-games-button:active {
+      transform: scale(0.95);
+      box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    #sound-button-container {
+      top: 10px;
+      right: 10px;
+    }
+
+    #sound-button {
+      background: linear-gradient(135deg, #3498db, #2980b9);
+      color: white;
+      font-size: 16px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    #sound-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    #sound-button:active {
+      transform: scale(0.95);
+      box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.3);
+    }
+  </style>
+  <script>
+    document.getElementById('delete-games-button').addEventListener('click', () => {
+      const confirmDelete = confirm('¿Estás seguro de que deseas borrar todos los juegos? Esta acción no se puede deshacer.');
+      if (confirmDelete) {
+        try {
+          ServerApi.DefaultService.deleteAllGames();
+          displayMessage('¡Todos los juegos han sido borrados con éxito!');
+        } catch (error) {
+          console.error('Error al borrar los juegos:', error);
+          displayMessage('Hubo un error al intentar borrar los juegos.');
+        }
+      }
+    });
+
+    let isMuted = false;
+    document.getElementById('sound-button').addEventListener('click', () => {
+      isMuted = !isMuted;
+      const soundButton = document.getElementById('sound-button');
+      if (isMuted) {
+        soundButton.textContent = '🔇 Mute';
+      } else {
+        soundButton.textContent = '🔊 Sonido';
+      }
+    });
+
+  </script>
 
   <div id="emotar-selector" class="container" >
     <div class="title">Selecciona tu Emotar</div>
@@ -214,7 +313,17 @@
   <script>
     var app = {
         game: null,
+        clientPlayer: null,
     };
+    function addEventIfNotRegistered(element, event, callback) {
+      const attributeName = `data-event-${event}`;
+      const isEventRegistered = element.getAttribute(attributeName);
+
+      if (!isEventRegistered || isEventRegistered === "false") {
+          element.addEventListener(event, callback);
+          element.setAttribute(attributeName, "true");
+      }
+    }
   </script>
   <script>
     const confirmWeaponChoice = document.getElementById('confirm-weapon-choice');
@@ -232,7 +341,7 @@
       }
     }
 
-    confirmWeaponChoice.addEventListener('click',async () => {
+    addEventIfNotRegistered(confirmWeaponChoice, 'click',async () => {
       if (!selectedWeaponElement) return;
 
       selectedWeaponElement.style.border = 'none';
@@ -280,7 +389,9 @@
       explosion.style.left = `${left}px`;
       explosion.style.transform = 'translate(-50%, -50%)';
       document.body.appendChild(explosion);
-      //playExplosionSound();
+      if (!isMuted) {
+        playExplosionSound();
+      }
 
 
       setTimeout(() => {
@@ -292,7 +403,7 @@
     function getRandomExplosionSound() {
       const explosionCount = 2;
       const randomIndex = Math.floor(Math.random() * explosionCount) + 1;
-      return `explosion_1.mp3`;
+      return `/assets/explosion_1.mp3`;
     }
 
     function playExplosionSound() {
@@ -437,8 +548,7 @@
       })
       emotarSelector.classList.add('fade-out');
     }
-
-    confirmEmotar.addEventListener('click', () => {
+    addEventIfNotRegistered(confirmEmotar, 'click', () => {
       if (selectedEmotar) {
         confirmSelectEmotar(selectedEmotar)
       }
@@ -478,8 +588,7 @@
           let restartGame = document.getElementById("restart-game")
           restartGame.style.display = "inline-block"
           restartGame.classList.add('fade-in');
-          restartGame.removeEventListener('click', restartCallback);
-          restartGame.addEventListener('click', restartCallback);
+          addEventIfNotRegistered(restartGame,'click', restartCallback);
 
           async function restartCallback() {
             restartGame.classList.remove('fade-in');
@@ -540,11 +649,15 @@
       resolveGame.style.display = "inline-block"
       resolveGame.classList.add('fade-in');
       setTimeout(() => {
-        resolveGame.removeEventListener('click', resolveCallback);
-        resolveGame.addEventListener('click', resolveCallback);
+        addEventIfNotRegistered(resolveGame,'click', resolveCallback);
       }, 1000);
       async function resolveCallback() {
         await ServerApi.DefaultService.resolveCurrentMatch(app.game);
+      }
+    } else {
+      let lastClientPlayerMove = app.game.currentMatch.lastMoveByPlayerId[app.clientPlayer.id]
+      if (!lastClientPlayerMove) {
+        displayMessage("Enimigo ya elegió!")
       }
     }
 
@@ -559,8 +672,7 @@
       beginGame.classList.add('fade-in');
       setTimeout(() => {
         beginGame.disabled = false;
-        beginGame.removeEventListener('click', startGameCallback);
-        beginGame.addEventListener('click', startGameCallback);
+        addEventIfNotRegistered(beginGame, 'click', startGameCallback);
       }, 1000);
       async function startGameCallback() {
         app.game = await ServerApi.DefaultService.startGame(app.game);
