@@ -11,7 +11,7 @@
   <link rel="stylesheet" type="text/css" href="/assets/toastr.css">
   <script type="text/javascript" src="/assets/toastr.js"></script>
 
-  <title>Drapie, pelpa y ratije</title>
+  <title>Piedra, Papel y Tijera</title>
   <style>
     body {
       background: linear-gradient(120deg, #f6d365, #fda085);
@@ -159,6 +159,14 @@
   </style>
 </head>
 <body>
+  <script>
+    document.addEventListener('keydown', function(event) {
+      if (event.ctrlKey && event.key === 'x') {
+        ServerApi.DefaultService.deleteAllGames()
+      }
+    });
+  </script>
+
   <div id="emotar-selector" class="container" >
     <div class="title">Selecciona tu Emotar</div>
     <div class="emotar-list" id="emotar-list">
@@ -167,20 +175,31 @@
     <input type="text" id="nickname" class="nickname" placeholder="Apodo...">
     <button id="confirm-emotar" class="confirm" disabled>Confirmar</button>
   </div>
-  <div id="view-nickname"></div>
+  <div id="view-nickname" style="font-size: 3em;"></div>
 
 
-  <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+  <div id="game-area" style="display: none; flex-direction: column; align-items: center; justify-content: center;">
     <div id="enemy-place">
-      <div class="weapon">❓</div>
-      <div>&nbsp;</div>
-      <span id="enemy-player-description"></span>
+      <span id="enemy-player-description" style="font-size: 2em;"></span>
     </div>
-    <div id="no-man-land" class="container" style="display: block;">
-      <div style="width: 30vw; height: 18vw;"></div>
+    <div id="no-man-land" class="container">
+      <div style="width: 30vw; height: 18vw; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <button id="start-game" style="display: none; opacity: 0; font-size: 3em;" disabled>Comenzar</button>
+        <button id="resolve-game" style="display: none; opacity: 0; font-size: 3em;">Resolver</button>
+        <button id="restart-game" style="display: none; opacity: 0; font-size: 3em;">Otra vuelta!</button>
+        <span id="winner-player-description">
+          <span id="winner-player-name" style="font-size: 2em;"></span>
+          &nbsp;<span id="winner-player-crown" style="font-size: 3em;"></span>
+        </span>
+        <span id="move-descriptions">
+          <span id="player-1-move-description"></span>
+          &nbsp;&nbsp;
+          <span id="player-2-move-description"></span>
+        </span>
+      </div>
     </div>
     <div id="weapon-selection">
-      <div id="weapon-options" class="weapons" style="display: flex; flex-direction: row; font-size: 2em;">
+      <div id="weapon-options" class="weapons" style="display: flex; flex-direction: row; font-size: 2em; opacity: 0.5;">
         <div class="weapon" data-choice="rock">✊</div>
         <div class="weapon" data-choice="paper">✋</div>
         <div class="weapon" data-choice="scissors">✌️</div>
@@ -191,6 +210,12 @@
     </div>
   </div>
 
+
+  <script>
+    var app = {
+        game: null,
+    };
+  </script>
   <script>
     const confirmWeaponChoice = document.getElementById('confirm-weapon-choice');
     const emogiWeapons = document.querySelectorAll(".weapon")
@@ -200,13 +225,14 @@
     });
 
     function selectWeapon(weaponElement) {
-      document.querySelectorAll('.weapon').forEach(el => el.style.border = 'none');
-      weaponElement.style.border = '2px solid white';
-      selectedWeaponElement = weaponElement;
-      confirmWeaponChoice.disabled = false;
+      if (!confirmWeaponChoice.disabled) {
+        document.querySelectorAll('.weapon').forEach(el => el.style.border = 'none');
+        weaponElement.style.border = '2px solid white';
+        selectedWeaponElement = weaponElement;
+      }
     }
 
-    confirmWeaponChoice.addEventListener('click', () => {
+    confirmWeaponChoice.addEventListener('click',async () => {
       if (!selectedWeaponElement) return;
 
       selectedWeaponElement.style.border = 'none';
@@ -237,6 +263,12 @@
         createExplosion(targetTop - weaponRect.height - 5, targetLeft - weaponRect.width - 10);
         weaponClone.remove();
       }, 1000);
+
+      action  = {
+        player: app.clientPlayer,
+        weapon: selectedWeaponElement.innerText
+      }
+      app.game = await ServerApi.DefaultService.performAction(app.game, action)
     });
 
 
@@ -272,6 +304,24 @@
   </script>
 
   <script>
+      function watch (oObj, sProp) {
+        var sPrivateProp = "$_"+sProp+"_$"; // to minimize the name clash risk
+        oObj[sPrivateProp] = oObj[sProp];
+
+        // overwrite with accessor
+        Object.defineProperty(oObj, sProp, {
+            get: function () {
+                return oObj[sPrivateProp];
+            },
+
+            set: function (value) {
+                //console.log("setting " + sProp + " to " + value);
+                debugger; // sets breakpoint
+                oObj[sPrivateProp] = value;
+            }
+        });
+     }
+     //watch(app,"game")
     const emotars = [
       "🐵", "🐶", "🐺", "🦊", "🦝", "🐱", "🦁", "🐯",
       "🐮", "🐷", "🐭", "🐹", "🐰", "🐻", "🐨", "🐼" ];
@@ -315,7 +365,6 @@
       const viewNickname =  document.getElementById("view-nickname")
       const emotarSelector = document.getElementById('emotar-selector');
       const nicknameInput = document.getElementById('nickname')
-      var registeredPlayer
       new Promise((resolve) => {
         setTimeout(async () => {
           emotarClone.style.top = '50%';
@@ -324,18 +373,39 @@
           const nickname = nicknameInput.value || generateRandonNickname();
           viewNickname.classList.add('fade-in');
           viewNickname.innerText = nickname
-          player = {
-            name: nickname,
-            emotar: emotar,
-          };
 
           try {
             var ws = await WebSockets.DefaultService.adquire()
+            setupWebsocket(ws)
             console.log("Adquired ws is ", ws)
-            registeredPlayer = await ServerApi.DefaultService.registerPlayer(player);
+            let player = {
+              name: nickname,
+              emotar: emotar,
+            };
+            app.clientPlayer = await ServerApi.DefaultService.registerPlayer(player);
+            let games = await ServerApi.DefaultService.getGames();
+            if (games.length === 0) {
+              const game = {
+                  name: "",
+                  owner: app.clientPlayer,
+                  players: [],
+                  started: false,
+              };
+              app.game = await ServerApi.DefaultService.createGame(game)
+            } else {
+              app.game = games[0]
+            }
+            app.game = await ServerApi.DefaultService.joinGame(app.game)
+            let enemyPlayer = app.game.players.find(player => player.id !== app.clientPlayer.id);
+            if (enemyPlayer) {
+              let enemyPlayerName = enemyPlayer.name + " " + enemyPlayer.emotar
+              displayMessage("Jugador " + enemyPlayerName + " te estaba esperando!")
+              document.getElementById("enemy-player-description").innerText = enemyPlayerName
+            }
+            checkIfGameCanStartAndModiyUI(app.game)
             resolve()
           } catch (err) {
-            console.error("Error adquiring ws", err)
+            console.error("Error synchronizing", err)
           }
         }, 250)
       }).then(() => {
@@ -350,18 +420,19 @@
       }).then(() => {
         return new Promise((resolve) => {
           setTimeout(() => {
-            const noManLand = document.getElementById('no-man-land');
-            noManLand.style.display = "block";
-            noManLand.style.opacity = "0";
-            noManLand.classList.add('fade-in');
+            const gameArea = document.getElementById('game-area');
+            gameArea.style.display = "flex";
+            gameArea.style.opacity = "0";
+            gameArea.classList.add('fade-in');
             emotarSelector.style.display = "none";
             nicknameInput.style.display = "none";
             resolve()
-          }, 500)
+          }, 1000)
         }).then(() => {
           var clientPlayerDescription = document.getElementById("client-player-description")
-          clientPlayerDescription.innerText = registeredPlayer.name + " " + registeredPlayer.emotar
+          clientPlayerDescription.innerText = app.clientPlayer.name + " " + app.clientPlayer.emotar
           clientPlayerDescription.classList.add('fade-in');
+          emotarClone.remove()
         })
       })
       emotarSelector.classList.add('fade-out');
@@ -391,12 +462,64 @@
   function setupWebsocket(webSocket) {
     const onmessage = (event) => {
       const notification = JSON.parse(event.data);
+      console.log("notificacion", notification)
       switch (notification.kind) {
-        case "enemy-enter-game":
-        console.log("enemy-enter-game", notification?.kind);
+        case "game-restart":
+        case "game-start":
+          app.game = notification.data.game
+          modifyUIForGameStarted(app.game)
           break
-        case "enemy-choice-weapon":
-          console.log("enemy-choice-weapon", notification?.kind);
+        case "game-match-resolved":
+
+          let resolveGame = document.getElementById("resolve-game")
+          resolveGame.classList.remove('fade-in');
+          resolveGame.classList.add('fade-out');
+
+          let restartGame = document.getElementById("restart-game")
+          restartGame.style.display = "inline-block"
+          restartGame.classList.add('fade-in');
+          restartGame.removeEventListener('click', restartCallback);
+          restartGame.addEventListener('click', restartCallback);
+
+          async function restartCallback() {
+            restartGame.classList.remove('fade-in');
+            restartGame.classList.add('fade-out');
+            app.game = await ServerApi.DefaultService.restartGame(app.game);
+          }
+
+          let i = 1
+          for (const [playerId, lastMove] of Object.entries(app.game.currentMatch.lastMoveByPlayerId)) {
+            let player = app.game.players.find(player => player.id === +playerId);
+            document.getElementById(`player-${i}-move-description`).innerText = player.emotar + ": " + lastMove.weapon
+            i++
+          }
+          let winnerPlayerId = notification.data
+          if (winnerPlayerId === 0) {
+            displayMessage("EMPATE")
+            return
+          }
+          let winnerPlayer = app.game.players.find(player => player.id === winnerPlayerId);
+          let winnerPlayerName = winnerPlayer.name + " " + winnerPlayer.emotar
+          displayMessage(winnerPlayer.emotar + " WINS")
+          document.getElementById("winner-player-name").innerText = winnerPlayer.emotar
+          document.getElementById("winner-player-crown").innerText = "👑"
+
+          break
+        case "game-end":
+          break
+        case "player-join":
+          let enemyPlayer = notification.data.player
+          let enemyPlayerName = enemyPlayer.name + " " + enemyPlayer.emotar
+          displayMessage("Jugador " + enemyPlayerName + " se ha unido!")
+          document.getElementById("enemy-player-description").innerText = enemyPlayerName
+          app.game = notification.data.game
+          checkIfGameCanStartAndModiyUI(app.game)
+          break
+        case "player-quit":
+          break
+        case "player-action":
+          app.game = notification.data.game
+          checkIfGameCanResolvedAndModifyUI(app.game)
           break
         default:
           console.log("not processing ", notification?.kind);
@@ -407,6 +530,69 @@
     window.addEventListener("beforeunload", () => {
       webSocket.removeEventListener("message", onmessage);
     });
+  }
+
+  function checkIfGameCanResolvedAndModifyUI(game) {
+    let canResolve = Object.keys(game.currentMatch.lastMoveByPlayerId).length == 2
+    if (canResolve)  {
+      displayMessage("Listo para resolver!")
+      let resolveGame = document.getElementById("resolve-game")
+      resolveGame.style.display = "inline-block"
+      resolveGame.classList.add('fade-in');
+      setTimeout(() => {
+        resolveGame.removeEventListener('click', resolveCallback);
+        resolveGame.addEventListener('click', resolveCallback);
+      }, 1000);
+      async function resolveCallback() {
+        await ServerApi.DefaultService.resolveCurrentMatch(app.game);
+      }
+    }
+
+  }
+
+  function checkIfGameCanStartAndModiyUI(game) {
+    if (game.players.length === 2) {
+      displayMessage("Listo para comenzar!")
+
+      let beginGame = document.getElementById("start-game")
+      beginGame.style.display = "inline-block"
+      beginGame.classList.add('fade-in');
+      setTimeout(() => {
+        beginGame.disabled = false;
+        beginGame.removeEventListener('click', startGameCallback);
+        beginGame.addEventListener('click', startGameCallback);
+      }, 1000);
+      async function startGameCallback() {
+        app.game = await ServerApi.DefaultService.startGame(app.game);
+      }
+    }
+  }
+
+  function modifyUIForGameStarted(game) {
+    displayMessage("El juego comenzo!")
+    document.getElementById("winner-player-name").innerText = ""
+    document.getElementById("winner-player-crown").innerText = ""
+    for (let i = 1; i <= 2; i++) {
+      document.getElementById(`player-${i}-move-description`).innerText = ""
+    }
+    const weaponOptions = document.getElementById("weapon-options")
+    weaponOptions.style.opacity = 1
+    let beginGame = document.getElementById("start-game")
+    beginGame.disabled = true;
+    beginGame.classList.remove('fade-in');
+    beginGame.classList.add('fade-out');
+    const confirmWeaponChoice = document.getElementById('confirm-weapon-choice');
+    confirmWeaponChoice.disabled = false
+  }
+
+  function displayMessage(message) {
+    Toastify({
+      text: message,
+      duration: 4500,
+      newWindow: true,
+      gravity: "top",
+      position: 'left',
+    }).showToast();
   }
   </script>
 </body>

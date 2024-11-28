@@ -36,7 +36,6 @@ func retrieveCookieStoreKey(filepath string) (key []byte, err error) {
 }
 
 func StartServer() {
-
 	key, err := retrieveCookieStoreKey(storeKeyFilePath)
 	if err != nil {
 		log.Printf("Unexpected error while retrieving cookie store key: %v", err)
@@ -97,13 +96,24 @@ func buildRouter() *mux.Router {
 	apiRouter := rootRouter.PathPrefix("/api/v1").Subrouter()
 	apiGet := BuildSetHandleFunc(apiRouter, "GET")
 	apiPost := BuildSetHandleFunc(apiRouter, "POST")
+	apiDelete := BuildSetHandleFunc(apiRouter, "DELETE")
 
 	apiPost("/players/register", controllers.RegisterPlayer)
 	apiGet("/players", controllers.GetPlayers)
 
-	apiGet("/games", controllers.GetGameById)
+	apiGet("/games", controllers.GetGames)
 	apiPost("/games", controllers.CreateGame)
+	apiDelete("/games", controllers.DeleteGames)
+	apiPost("/games/{id:[0-9]+}/start", controllers.StartGame)
+	apiPost("/games/{id:[0-9]+}/restart", controllers.RestartGame)
 	apiPost("/games/{id:[0-9]+}/join", controllers.JoinGame)
+	apiPost("/games/{id:[0-9]+}/quit", controllers.QuitGame)
+	apiPost("/games/{id:[0-9]+}/perform-action", controllers.PerformAction)
+	apiPost("/games/{id:[0-9]+}/resolve-current-match", controllers.ResolveCurrentGameMatch)
+
+	apiGet("/games/{id:[0-9]+}/bind-ws", controllers.BindClientWebSocketToGame)
+	apiGet("/games/{id:[0-9]+}/unbind-ws", controllers.UnbindClientWebSocketInGame)
+
 	return router
 }
 
