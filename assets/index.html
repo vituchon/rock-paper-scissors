@@ -285,7 +285,7 @@
       <span id="enemy-player-description" style="font-size: 2em;"></span>
     </div>
     <div id="no-man-land" class="container">
-      <div style="width: 30vw; height: 18vw; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <button id="start-game" style="display: none; opacity: 0; font-size: 3em;" disabled>Comenzar</button>
         <button id="resolve-game" style="display: none; opacity: 0; font-size: 3em;">Resolver</button>
         <button id="restart-game" style="display: none; opacity: 0; font-size: 3em;">Otra vuelta!</button>
@@ -329,7 +329,6 @@
     }
   </script>
   <script>
-    const confirmWeaponChoice = document.getElementById('confirm-weapon-choice');
     const emogiWeapons = document.querySelectorAll(".weapon")
     var selectedWeaponElement
     emogiWeapons.forEach(emogiWeapon => {
@@ -337,13 +336,12 @@
     });
 
     function selectWeapon(weaponElement) {
-      if (!confirmWeaponChoice.disabled) {
-        document.querySelectorAll('.weapon').forEach(el => el.style.border = 'none');
-        weaponElement.style.border = '2px solid white';
-        selectedWeaponElement = weaponElement;
-      }
+      document.querySelectorAll('.weapon').forEach(el => el.style.border = 'none');
+      weaponElement.style.border = '2px solid white';
+      selectedWeaponElement = weaponElement;
     }
 
+    const confirmWeaponChoice = document.getElementById('confirm-weapon-choice');
     addEventIfNotRegistered(confirmWeaponChoice, 'click',async () => {
       if (!selectedWeaponElement) return;
 
@@ -485,6 +483,7 @@
           emotarClone.style.left = '50%';
           emotarClone.style.transform = 'translate(-50%, -50%) scale(3)';
           const nickname = nicknameInput.value || generateRandonNickname();
+          viewNickname.style.display = "block"
           viewNickname.classList.add('fade-in');
           viewNickname.innerText = nickname
 
@@ -534,6 +533,7 @@
       }).then(() => {
         return new Promise((resolve) => {
           setTimeout(() => {
+            viewNickname.style.display = "none"
             const gameArea = document.getElementById('game-area');
             gameArea.style.display = "flex";
             gameArea.style.opacity = "0";
@@ -585,6 +585,7 @@
         case "game-match-resolved":
 
           let resolveGame = document.getElementById("resolve-game")
+          resolveGame.style.display = "inline-block"
           resolveGame.classList.remove('fade-in');
           resolveGame.classList.add('fade-out');
 
@@ -596,6 +597,10 @@
           async function restartCallback() {
             restartGame.classList.remove('fade-in');
             restartGame.classList.add('fade-out');
+            setTimeout(() => {
+              resolveGame.style.display = "none"
+              restartGame.style.display = "none"
+            }, 1000);
             app.game = await ServerApi.DefaultService.restartGame(app.game);
           }
 
