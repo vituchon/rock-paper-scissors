@@ -75,7 +75,7 @@
       transition: 0.2s;
     }
 
-    .confirm {
+    button {
       margin-top: 15px;
       padding: 10px 20px;
       background: #fda085;
@@ -87,16 +87,16 @@
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
 
-    .confirm:hover {
+    button:hover {
       background: #f6d365;
     }
 
-    .confirm:disabled {
+    button:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
 
-    #confirm-weapon-choice.confirm {
+    #confirm-weapon-choice {
       background-color: grey;
     }
 
@@ -276,7 +276,7 @@
         <!-- Emotars se cargarán aquí -->
       </div>
       <input type="text" id="nickname" class="nickname" placeholder="Apodo...">
-      <button id="confirm-emotar" class="confirm" disabled>Confirmar</button>
+      <button id="confirm-emotar" disabled>Confirmar</button>
     </div>
     <div id="view-nickname" style="font-size: 3em;"></div>
   </div>
@@ -310,7 +310,7 @@
         <div class="weapon" data-choice="scissors">✌️</div>
       </div>
       <div>&nbsp;</div>
-      <button id="confirm-weapon-choice" class="confirm" disabled>Confirmar</button>
+      <button id="confirm-weapon-choice" disabled>Confirmar</button>
     </div>
   </div>
 
@@ -328,8 +328,12 @@
     }
 
     const confirmWeaponChoice = document.getElementById('confirm-weapon-choice');
-    addEventIfNotRegistered(confirmWeaponChoice, 'click',async () => {
-      if (!selectedWeaponElement) return;
+    addEventIfNotRegistered(confirmWeaponChoice, 'click', confirmWeaponChoiceCallback);
+
+    async function confirmWeaponChoiceCallback() {
+      if (!selectedWeaponElement) {
+        return;
+      }
 
       selectedWeaponElement.style.border = 'none';
       confirmWeaponChoice.disabled = true;
@@ -365,8 +369,7 @@
         weapon: selectedWeaponElement.innerText
       }
       app.game = await ServerApi.DefaultService.performAction(app.game, action)
-    });
-
+    }
 
     function createExplosion(top, left) {
       const explosion = document.createElement('div');
@@ -507,7 +510,7 @@
             emotarSelector.style.display = "none";
             nicknameInput.style.display = "none";
             resolve()
-          }, 1000)
+          }, 500)
         }).then(() => {
           let clientPlayerDescription = document.getElementById("client-player-description")
           clientPlayerDescription.innerText = app.clientPlayer.name + " " + app.clientPlayer.emotar
@@ -548,23 +551,26 @@
           modifyUIForGameStarted(app.game)
           break
         case "game-match-resolved": {
+            // hide resolve button
             let resolveGame = document.getElementById("resolve-game")
-            resolveGame.style.display = "inline-block"
+            resolveGame.disabled = true;
             resolveGame.classList.remove('fade-in');
             resolveGame.classList.add('fade-out');
+            setTimeout(() => {
+              resolveGame.style.display = "none"
+            }, 1000);
 
+            // show restart button
             let restartGame = document.getElementById("restart-game")
             restartGame.style.display = "inline-block"
+            restartGame.classList.remove('fade-out');
             restartGame.classList.add('fade-in');
-            addEventIfNotRegistered(restartGame,'click', restartCallback);
+            setTimeout(() => {
+              restartGame.disabled = false;
+              addEventIfNotRegistered(restartGame,'click', restartCallback);
+            }, 1000);
 
             async function restartCallback() {
-              restartGame.classList.remove('fade-in');
-              restartGame.classList.add('fade-out');
-              setTimeout(() => {
-                resolveGame.style.display = "none"
-                restartGame.style.display = "none"
-              }, 1000);
               app.game = await ServerApi.DefaultService.restartGame(app.game);
             }
 
@@ -579,8 +585,6 @@
               displayMessage("EMPATE")
               return
             }
-
-
 
             let winnerPlayer = app.game.players.find(player => player.id === winnerPlayerId);
             let winnerPlayerName = winnerPlayer.name + " " + winnerPlayer.emotar
@@ -597,7 +601,6 @@
             }
             app.scoreByPlayerId[winnerPlayerId]++
 
-
             setScore(enemyPlayer,"enemy-player-description", app.scoreByPlayerId[app.clientPlayer.id])
             setScore(app.clientPlayer,"client-player-description", app.scoreByPlayerId[enemyPlayer.id])
             function setScore(player, elementId, enemyScore) {
@@ -613,8 +616,8 @@
               } else if (diff > 0) {
                 size = 1 + (diff * 0.2)
               }
-              let score = `<span style="font-size: ${size}em">(${app.scoreByPlayerId[player.id]})</span>`
-              document.getElementById(elementId).innerHTML = playerName + score
+              let playerDescriptionHTML = `<span style="font-size: ${size}em">${playerName} (${app.scoreByPlayerId[player.id]})</span>`
+              document.getElementById(elementId).innerHTML = playerDescriptionHTML
             }
           }
           break
@@ -648,20 +651,23 @@
   function checkIfGameCanResolvedAndModifyUI(game) {
     let canResolve = Object.keys(game.currentMatch.lastMoveByPlayerId).length == 2
     if (canResolve)  {
-      displayMessage("Listo para resolver!")
+      // show resolve button
       let resolveGame = document.getElementById("resolve-game")
       resolveGame.style.display = "inline-block"
+      resolveGame.classList.remove('fade-out');
       resolveGame.classList.add('fade-in');
       setTimeout(() => {
+        resolveGame.disabled = false
         addEventIfNotRegistered(resolveGame,'click', resolveCallback);
       }, 1000);
+
       async function resolveCallback() {
         await ServerApi.DefaultService.resolveCurrentMatch(app.game);
       }
     } else {
       let lastClientPlayerMove = app.game.currentMatch.lastMoveByPlayerId[app.clientPlayer.id]
       if (!lastClientPlayerMove) {
-        displayMessage("Enimigo ya elegió!")
+        displayMessage("Nmigo ya elegió!")
       }
     }
 
@@ -671,12 +677,14 @@
     if (game.players.length === 2) {
       displayMessage("Listo para comenzar!")
 
-      let beginGame = document.getElementById("start-game")
-      beginGame.style.display = "inline-block"
-      beginGame.classList.add('fade-in');
+      // show start button
+      let startGame = document.getElementById("start-game")
+      startGame.style.display = "inline-block"
+      startGame.classList.remove('fade-out');
+      startGame.classList.add('fade-in');
       setTimeout(() => {
-        beginGame.disabled = false;
-        addEventIfNotRegistered(beginGame, 'click', startGameCallback);
+        startGame.disabled = false;
+        addEventIfNotRegistered(startGame, 'click', startGameCallback);
       }, 1000);
       async function startGameCallback() {
         app.game = await ServerApi.DefaultService.startGame(app.game);
@@ -693,10 +701,21 @@
     }
     const weaponOptions = document.getElementById("weapon-options")
     weaponOptions.style.opacity = 1
-    let beginGame = document.getElementById("start-game")
-    beginGame.disabled = true;
-    beginGame.classList.remove('fade-in');
-    beginGame.classList.add('fade-out');
+    // hide start button
+    let startGame = document.getElementById("start-game")
+    startGame.disabled = true;
+    startGame.classList.remove('fade-in');
+    startGame.classList.add('fade-out');
+    // hide restart button
+    let restartGame = document.getElementById("restart-game")
+    restartGame.disabled = true;
+    restartGame.classList.remove('fade-in');
+    restartGame.classList.add('fade-out');
+    setTimeout(() => {
+      startGame.style.display = "none"
+      restartGame.style.display = "none"
+    }, 1000);
+
     const confirmWeaponChoice = document.getElementById('confirm-weapon-choice');
     confirmWeaponChoice.disabled = false
   }

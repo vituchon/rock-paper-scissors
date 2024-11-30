@@ -53,6 +53,10 @@ func (game *Game) CreateNewMatch() {
 	}
 }
 
+func (game Game) HasCurrentMatchNoMoves() bool {
+	return len(game.CurrentMatch.MoveByPlayerId) == 0
+}
+
 const MAX_PLAYER_PER_GAME int = 2
 
 func (game Game) IsMatchCompleted() bool {

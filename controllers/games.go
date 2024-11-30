@@ -184,7 +184,13 @@ func RestartGame(response http.ResponseWriter, request *http.Request) {
 
 	playerId := services.GetClientId(request)
 	if game.Owner.Id != playerId {
-		log.Printf("error while starting game: request doesn't cames from the owner, in cames from %d\n", playerId)
+		log.Printf("error while restarting game: request doesn't cames from the owner, in cames from %d\n", playerId)
+		response.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if game.HasCurrentMatchNoMoves() {
+		log.Print("error while restarting game: match has no moves")
 		response.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -192,13 +198,13 @@ func RestartGame(response http.ResponseWriter, request *http.Request) {
 	game.CreateNewMatch()
 	game, err = gamesRepository.UpdateGame(*game)
 	if err != nil {
-		log.Printf("error while starting game: '%v'", err)
+		log.Printf("error while restarting game: '%v'", err)
 		response.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	msgPayload := services.WebSockectOutgoingActionMsgPayload{game, nil}
-	services.GameWebSockets.NotifyGameConns(game.Id, "game-start", msgPayload)
+	services.GameWebSockets.NotifyGameConns(game.Id, "game-restart", msgPayload)
 	WriteJsonResponse(response, http.StatusOK, game)
 }
 
