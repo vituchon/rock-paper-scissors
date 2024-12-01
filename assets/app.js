@@ -37,31 +37,45 @@ var Buttons;
 (function (Buttons) {
 
   function fadeout(...ids) {
-    ids.forEach(id => {
-      let button = document.getElementById(id);
-      if (button) {
-        button.disabled = true;
-        button.classList.remove('fade-in');
-        button.classList.add('fade-out');
-        setTimeout(() => {
-          button.style.display = "none";
-        }, 1000);
-      }
+    const timeouts = ids.map(id => {
+      return new Promise((resolve) => {
+        let button = document.getElementById(id);
+        if (button) {
+          button.disabled = true;
+          button.classList.remove('fade-in');
+          button.classList.add('fade-out');
+          setTimeout(() => {
+            button.style.display = "none";
+            resolve();
+          }, 1000);
+        } else {
+          resolve();
+        }
+      });
     });
+
+    return Promise.all(timeouts);
   }
 
   function fadein(display, ...ids) {
-    ids.forEach(id => {
-      let button = document.getElementById(id);
-      if (button) {
-        button.style.display = display;
-        button.classList.remove('fade-out');
-        button.classList.add('fade-in');
-        setTimeout(() => {
-          button.disabled = false;
-        }, 1000);
-      }
+    const timeouts = ids.map(id => {
+      return new Promise((resolve) => {
+        let button = document.getElementById(id);
+        if (button) {
+          button.style.display = display;
+          button.classList.remove('fade-out');
+          button.classList.add('fade-in');
+          setTimeout(() => {
+            button.disabled = false;
+            resolve();
+          }, 1000);
+        } else {
+          resolve();
+        }
+      });
     });
+
+    return Promise.all(timeouts);
   }
 
   Buttons.fadeout = fadeout

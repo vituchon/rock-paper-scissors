@@ -27,11 +27,11 @@
       background: white;
       border-radius: 10px;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      width: 90%;
-      max-width: 400px;
       padding: 20px;
       text-align: center;
       position: relative;
+      min-height: 15em;
+      min-width: 20em;
     }
 
     .title {
@@ -576,8 +576,9 @@
           modifyUIForGameStarted(app.game)
           break
         case "game-match-resolved": {
-            Buttons.fadeout("resolve-game")
-            Buttons.fadein("inline-block", "restart-game")
+            Buttons.fadeout("resolve-game").then(() => {
+              Buttons.fadein("inline-block", "restart-game")
+            })
             let i = 1
             for (const [playerId, lastMove] of Object.entries(app.game.currentMatch.lastMoveByPlayerId)) {
               let player = app.game.players.find(player => player.id === +playerId);
