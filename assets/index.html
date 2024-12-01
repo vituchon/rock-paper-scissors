@@ -576,24 +576,8 @@
           modifyUIForGameStarted(app.game)
           break
         case "game-match-resolved": {
-            // fade out resolve button
-            let resolveGame = document.getElementById("resolve-game")
-            resolveGame.disabled = true;
-            resolveGame.classList.remove('fade-in');
-            resolveGame.classList.add('fade-out');
-            setTimeout(() => {
-              resolveGame.style.display = "none"
-            }, 1000);
-
-            // fade in restart button
-            let restartGame = document.getElementById("restart-game")
-            restartGame.style.display = "inline-block"
-            restartGame.classList.remove('fade-out');
-            restartGame.classList.add('fade-in');
-            setTimeout(() => {
-              restartGame.disabled = false;
-            }, 1000);
-
+            Buttons.fadeout("resolve-game")
+            Buttons.fadein("inline-block", "restart-game")
             let i = 1
             for (const [playerId, lastMove] of Object.entries(app.game.currentMatch.lastMoveByPlayerId)) {
               let player = app.game.players.find(player => player.id === +playerId);
@@ -671,15 +655,7 @@
   function checkIfGameCanResolvedAndModifyUI(game) {
     let canResolve = Object.keys(game.currentMatch.lastMoveByPlayerId).length == 2
     if (canResolve)  {
-      // fade in resolve button
-      let resolveGame = document.getElementById("resolve-game")
-      resolveGame.style.display = "inline-block"
-      resolveGame.classList.remove('fade-out');
-      resolveGame.classList.add('fade-in');
-      setTimeout(() => {
-        resolveGame.disabled = false
-      }, 1000);
-
+      Buttons.fadein("inline-block", "resolve-game")
     } else {
       let lastClientPlayerMove = app.game.currentMatch.lastMoveByPlayerId[app.clientPlayer.id]
       if (!lastClientPlayerMove) {
@@ -692,15 +668,7 @@
   function checkIfGameCanStartAndModiyUI(game) {
     if (game.players.length === 2) {
       displayMessage("Listo para comenzar!")
-
-      // fade in start button
-      let startGame = document.getElementById("start-game")
-      startGame.style.display = "inline-block"
-      startGame.classList.remove('fade-out');
-      startGame.classList.add('fade-in');
-      setTimeout(() => {
-        startGame.disabled = false;
-      }, 1000);
+      Buttons.fadein("inline-block", "start-game")
     }
   }
 
@@ -714,21 +682,7 @@
     const weaponOptions = document.getElementById("weapon-options")
     weaponOptions.style.opacity = 1
 
-    // fade out start button
-    let startGame = document.getElementById("start-game")
-    startGame.disabled = true;
-    startGame.classList.remove('fade-in');
-    startGame.classList.add('fade-out');
-    // fade out restart button
-    let restartGame = document.getElementById("restart-game")
-    restartGame.disabled = true;
-    restartGame.classList.remove('fade-in');
-    restartGame.classList.add('fade-out');
-    setTimeout(() => {
-      startGame.style.display = "none"
-      restartGame.style.display = "none"
-    }, 1000);
-
+    Buttons.fadeout("start-game", "restart-game")
     const confirmWeaponChoice = document.getElementById('confirm-weapon-choice');
     confirmWeaponChoice.disabled = false
   }
