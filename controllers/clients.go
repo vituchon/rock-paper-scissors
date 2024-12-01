@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"log"
 
 	"github.com/gorilla/sessions"
 	"github.com/vituchon/escobita/util"
@@ -21,12 +22,13 @@ func GetOrCreateClientSession(request *http.Request) (*sessions.Session, error) 
 		return nil, err
 	}
 	if clientSession.IsNew {
-		scaledNextId, err := integerSequence.GetNext()
+		nextId, err := integerSequence.GetNext()
 		if err != nil {
 			return nil, err
 		}
-		clientSession.Values["clientId"] = scaledNextId
+		clientSession.Values["clientId"] = nextId
 	}
+	log.Printf("clientSession: '%+v' /n",clientSession)
 	return clientSession, nil
 }
 
