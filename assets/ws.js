@@ -60,7 +60,7 @@ var WebSockets;
 
                     this.webSocket.onerror = (event) => {
                         console.warn("Web socket error, event is: ", event);
-                        this.cleanup();
+                        cleanup();
                         reject(event);
                     };
 
