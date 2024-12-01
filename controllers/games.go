@@ -283,6 +283,13 @@ func ResolveCurrentGameMatch(response http.ResponseWriter, request *http.Request
 		return
 
 	}
+
+	playerId := services.GetClientId(request)
+	if game.Owner.Id != playerId {
+		log.Printf("error while resolving current game's match: request doesn't cames from the owner, in cames from %d\n", playerId)
+		response.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	winnerPlayerId := game.ResolveMatch()
 	/*game, err = gamesRepository.UpdateGame(*game)
 	if err != nil {
