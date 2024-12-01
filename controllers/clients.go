@@ -13,6 +13,11 @@ var integerSequence util.IntegerSequence
 
 func InitSessionStore(key []byte) {
 	clientSessions = sessions.NewCookieStore(key)
+	clientSessions.Options = &sessions.Options{
+		HttpOnly: true,         // La cookie solo será accesible por HTTP
+		SameSite: http.SameSiteLaxMode, // Establece el comportamiento de SameSite
+		MaxAge:   3600,         // Establece el tiempo de vida de la cookie (en segundos)
+	}
 	integerSequence = util.NewFsIntegerSequence("ppt.seq", 0, 1)
 }
 
