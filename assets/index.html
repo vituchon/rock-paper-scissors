@@ -102,10 +102,6 @@
 
     .selected-emotar {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(3);
-      font-size: 3em;
       transition: all 0.8s ease;
     }
 
@@ -315,6 +311,30 @@
   </div>
 
   <script>
+    function setupGameButtonsEventHandlers(){
+      let restartGame = document.getElementById("restart-game")
+      addEventIfNotRegistered(restartGame,'click', restartHandler);
+      function restartHandler() {
+        ServerApi.DefaultService.restartGame(app.game);
+      }
+
+      let resolveGame = document.getElementById("resolve-game")
+      addEventIfNotRegistered(resolveGame,'click', resolveHandler);
+      function resolveHandler() {
+        ServerApi.DefaultService.resolveCurrentMatch(app.game);
+      }
+
+      let startGame = document.getElementById("start-game")
+      addEventIfNotRegistered(startGame, 'click', startGameHandler);
+      function startGameHandler() {
+        ServerApi.DefaultService.startGame(app.game);
+      }
+    }
+
+    setupGameButtonsEventHandlers()
+  </script>
+
+  <script>
     const emogiWeapons = document.querySelectorAll(".weapon")
     var selectedWeaponElement
     emogiWeapons.forEach(emogiWeapon => {
@@ -329,14 +349,13 @@
 
     const confirmWeaponChoice = document.getElementById('confirm-weapon-choice');
     addEventIfNotRegistered(confirmWeaponChoice, 'click', confirmWeaponChoiceCallback);
-
     async function confirmWeaponChoiceCallback() {
       if (!selectedWeaponElement) {
         return;
       }
+      confirmWeaponChoice.disabled = true;
 
       selectedWeaponElement.style.border = 'none';
-      confirmWeaponChoice.disabled = true;
 
       const noManLand = document.getElementById('no-man-land');
       const noManLandRect = noManLand.getBoundingClientRect();
@@ -435,22 +454,23 @@
       const element = document.getElementById(emotar)
       const rect = element.getBoundingClientRect();
       const emotarClone = element.cloneNode(true);
-
+      document.body.appendChild(emotarClone);
       emotarClone.classList.add('selected-emotar');
-      emotarClone.style.top = `${rect.top + window.scrollY}px`;
-      emotarClone.style.left = `${rect.left + window.scrollX}px`;
+      emotarClone.style.fontSize = '1.8em';
+      emotarClone.style.top = `${rect.top + 1}px`;
+      emotarClone.style.left = `${rect.left + 7}px`;
       emotarClone.style.position = 'absolute';
       emotarClone.style.border = 'none';
 
-      document.body.appendChild(emotarClone);
       const viewNickname =  document.getElementById("view-nickname")
       const emotarSelector = document.getElementById('emotar-selector');
       const nicknameInput = document.getElementById('nickname')
       new Promise((resolve) => {
         setTimeout(async () => {
+          emotarClone.style.fontSize = '8em';
           emotarClone.style.top = '50%';
           emotarClone.style.left = '50%';
-          emotarClone.style.transform = 'translate(-50%, -50%) scale(3)';
+          emotarClone.style.transform = 'translate(-50%, -50%)';
           const nickname = nicknameInput.value || generateRandonNickname();
           viewNickname.style.display = "block"
           viewNickname.classList.add('fade-in');
@@ -521,6 +541,7 @@
     }
     addEventIfNotRegistered(confirmEmotar, 'click', () => {
       if (selectedEmotar) {
+        confirmEmotar.disabled = true
         confirmSelectEmotar(selectedEmotar)
       }
     });
@@ -551,7 +572,7 @@
           modifyUIForGameStarted(app.game)
           break
         case "game-match-resolved": {
-            // hide resolve button
+            // fade out resolve button
             let resolveGame = document.getElementById("resolve-game")
             resolveGame.disabled = true;
             resolveGame.classList.remove('fade-in');
@@ -560,19 +581,14 @@
               resolveGame.style.display = "none"
             }, 1000);
 
-            // show restart button
+            // fade in restart button
             let restartGame = document.getElementById("restart-game")
             restartGame.style.display = "inline-block"
             restartGame.classList.remove('fade-out');
             restartGame.classList.add('fade-in');
             setTimeout(() => {
               restartGame.disabled = false;
-              addEventIfNotRegistered(restartGame,'click', restartCallback);
             }, 1000);
-
-            async function restartCallback() {
-              app.game = await ServerApi.DefaultService.restartGame(app.game);
-            }
 
             let i = 1
             for (const [playerId, lastMove] of Object.entries(app.game.currentMatch.lastMoveByPlayerId)) {
@@ -651,19 +667,15 @@
   function checkIfGameCanResolvedAndModifyUI(game) {
     let canResolve = Object.keys(game.currentMatch.lastMoveByPlayerId).length == 2
     if (canResolve)  {
-      // show resolve button
+      // fade in resolve button
       let resolveGame = document.getElementById("resolve-game")
       resolveGame.style.display = "inline-block"
       resolveGame.classList.remove('fade-out');
       resolveGame.classList.add('fade-in');
       setTimeout(() => {
         resolveGame.disabled = false
-        addEventIfNotRegistered(resolveGame,'click', resolveCallback);
       }, 1000);
 
-      async function resolveCallback() {
-        await ServerApi.DefaultService.resolveCurrentMatch(app.game);
-      }
     } else {
       let lastClientPlayerMove = app.game.currentMatch.lastMoveByPlayerId[app.clientPlayer.id]
       if (!lastClientPlayerMove) {
@@ -677,18 +689,14 @@
     if (game.players.length === 2) {
       displayMessage("Listo para comenzar!")
 
-      // show start button
+      // fade in start button
       let startGame = document.getElementById("start-game")
       startGame.style.display = "inline-block"
       startGame.classList.remove('fade-out');
       startGame.classList.add('fade-in');
       setTimeout(() => {
         startGame.disabled = false;
-        addEventIfNotRegistered(startGame, 'click', startGameCallback);
       }, 1000);
-      async function startGameCallback() {
-        app.game = await ServerApi.DefaultService.startGame(app.game);
-      }
     }
   }
 
@@ -701,12 +709,13 @@
     }
     const weaponOptions = document.getElementById("weapon-options")
     weaponOptions.style.opacity = 1
-    // hide start button
+
+    // fade out start button
     let startGame = document.getElementById("start-game")
     startGame.disabled = true;
     startGame.classList.remove('fade-in');
     startGame.classList.add('fade-out');
-    // hide restart button
+    // fade out restart button
     let restartGame = document.getElementById("restart-game")
     restartGame.disabled = true;
     restartGame.classList.remove('fade-in');
