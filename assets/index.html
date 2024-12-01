@@ -454,17 +454,18 @@
       const element = document.getElementById(emotar)
       const rect = element.getBoundingClientRect();
       const emotarClone = element.cloneNode(true);
-      document.body.appendChild(emotarClone);
       emotarClone.classList.add('selected-emotar');
       emotarClone.style.fontSize = '1.8em';
       emotarClone.style.top = `${rect.top + 1}px`;
       emotarClone.style.left = `${rect.left + 7}px`;
       emotarClone.style.position = 'absolute';
       emotarClone.style.border = 'none';
+      document.body.appendChild(emotarClone);
 
       const viewNickname =  document.getElementById("view-nickname")
-      const emotarSelector = document.getElementById('emotar-selector');
       const nicknameInput = document.getElementById('nickname')
+      const emotarSelector = document.getElementById('emotar-selector');
+      emotarSelector.classList.add('fade-out');
       new Promise((resolve) => {
         setTimeout(async () => {
           emotarClone.style.fontSize = '8em';
@@ -537,7 +538,6 @@
           emotarClone.remove()
         })
       })
-      emotarSelector.classList.add('fade-out');
     }
     addEventIfNotRegistered(confirmEmotar, 'click', () => {
       if (selectedEmotar) {
