@@ -256,13 +256,17 @@
     });
     document.getElementById('sound-button').addEventListener('click', () => {
       app.soundAllowed = !app.soundAllowed;
+      updateSoundButtonContent()
+    });
+    updateSoundButtonContent()
+    function updateSoundButtonContent() {
       const soundButton = document.getElementById('sound-button');
       if (app.soundAllowed) {
         soundButton.textContent = '🔊 Sonido';
       } else {
         soundButton.textContent = '🔇 Mute';
       }
-    });
+    }
   </script>
 
   <div id="emotar-selector-area" style="display: flex; flex-direction: column; align-items: center;">
