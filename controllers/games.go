@@ -190,7 +190,7 @@ func RestartGame(response http.ResponseWriter, request *http.Request) {
 	}
 
 	if game.HasCurrentMatchNoMoves() {
-		log.Print("error while restarting game: match has no moves")
+		log.Print("error while restarting game: match has no moves. Skipping restart.")
 		response.WriteHeader(http.StatusBadRequest)
 		return
 	}
