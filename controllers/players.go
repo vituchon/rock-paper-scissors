@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -14,8 +15,9 @@ var playersRepository repositories.Players = repositories.NewPlayersMemoryReposi
 func GetPlayers(response http.ResponseWriter, request *http.Request) {
 	players, err := playersRepository.GetPlayers()
 	if err != nil {
-		log.Printf("error while retrieving players : '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while retrieving players : '%v'", err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusInternalServerError)
 		return
 	}
 	WriteJsonResponse(response, http.StatusOK, players)
@@ -34,20 +36,23 @@ func RegisterPlayer(response http.ResponseWriter, request *http.Request) {
 			emotar, err := ParseSingleStringUrlQueryParam(request, "emotar")
 			player, err = createPlayer(id, *name, *emotar)
 			if err != nil {
-				log.Printf("error while registering (create) client player : '%v'", err)
-				response.WriteHeader(http.StatusInternalServerError)
+				msg := fmt.Sprintf("error while registering (create) client player : '%v'", err)
+				log.Println(msg)
+				http.Error(response, msg, http.StatusInternalServerError)
 				return
 			}
 			_, err = playersRepository.CreatePlayer(*player) // saves player in a persistent storage
 			if err != nil {
-				log.Printf("error while registering (create) client player : '%v'", err)
-				response.WriteHeader(http.StatusInternalServerError)
+				msg := fmt.Sprintf("error while creating client player : '%v'", err)
+				log.Println(msg)
+				http.Error(response, msg, http.StatusInternalServerError)
 				return
 			}
-			log.Printf("Creating new player %+v for ip=%s\n", player, request.RemoteAddr)
+			msg := fmt.Sprintf("Creating new player %+v for ip=%s", player, request.RemoteAddr)
+			log.Println(msg)
 		} else {
-			log.Printf("error while registering (create) client player : '%v'", err)
-			response.WriteHeader(http.StatusInternalServerError)
+			msg := fmt.Sprintf("error while getting client player by id(='%d'): '%v'", id, err)
+			http.Error(response, msg, http.StatusInternalServerError)
 			return
 		}
 	} else {
@@ -57,11 +62,13 @@ func RegisterPlayer(response http.ResponseWriter, request *http.Request) {
 		player.Emotar = *emotar
 		_, err = playersRepository.UpdatePlayer(*player)
 		if err != nil {
-			log.Printf("error while registering (update) client player : '%v'", err)
-			response.WriteHeader(http.StatusInternalServerError)
+			msg := fmt.Sprintf("error while updating client player: '%v'", err)
+			log.Println(msg)
+			http.Error(response, msg, http.StatusInternalServerError)
 			return
 		}
-		log.Printf("Using existing (and updated) player %+v for ip=%s \n", player, request.RemoteAddr)
+		msg := fmt.Sprintf("Using existing (and updated) player %+v for ip=%s", player, request.RemoteAddr)
+		log.Println(msg)
 	}
 	WriteJsonResponse(response, http.StatusOK, player)
 }
@@ -78,13 +85,14 @@ func GetPlayerById(response http.ResponseWriter, request *http.Request) {
 	id, err := ParseRouteParamAsInt(request, "id")
 	if err != nil {
 		log.Println(err)
-		response.WriteHeader(http.StatusBadRequest)
+		http.Error(response, err.Error(), http.StatusBadRequest)
 		return
 	}
 	player, err := playersRepository.GetPlayerById(id)
 	if err != nil {
-		log.Printf("error while retrieving player(id=%d): '%v'\n", id, err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while retrieving playerid(='%d'): '%v'", id, err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusInternalServerError)
 		return
 	}
 	WriteJsonResponse(response, http.StatusOK, player)
@@ -94,14 +102,16 @@ func UpdatePlayer(response http.ResponseWriter, request *http.Request) {
 	var player repositories.Player
 	err := parseJsonFromReader(request.Body, &player)
 	if err != nil {
-		log.Printf("error reading request body: '%v'", err)
-		response.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf("error reading request body: '%v'", err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusBadRequest)
 		return
 	}
 	updated, err := playersRepository.UpdatePlayer(player)
 	if err != nil {
-		log.Printf("error while updating Player: '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while updating Player: '%v'", err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusInternalServerError)
 		return
 	}
 	WriteJsonResponse(response, http.StatusOK, updated)
@@ -111,13 +121,14 @@ func DeletePlayer(response http.ResponseWriter, request *http.Request) {
 	id, err := ParseRouteParamAsInt(request, "id")
 	if err != nil {
 		log.Println(err)
-		response.WriteHeader(http.StatusBadRequest)
+		http.Error(response, err.Error(), http.StatusBadRequest)
 		return
 	}
 	err = playersRepository.DeletePlayer(id)
 	if err != nil {
-		log.Printf("error while deleting player(id=%d): '%v'", id, err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while deleting player(id=%d): '%v'", id, err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusInternalServerError)
 		return
 	}
 	response.WriteHeader(http.StatusOK)

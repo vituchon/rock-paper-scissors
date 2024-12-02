@@ -15,8 +15,9 @@ var gamesRepository repositories.Games = repositories.NewGamesMemoryRepository()
 func GetGames(response http.ResponseWriter, request *http.Request) {
 	games, err := gamesRepository.GetGames()
 	if err != nil {
-		log.Printf("error while retrieving games : '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while retrieving games : '%v'", err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusInternalServerError)
 		return
 	}
 	WriteJsonResponse(response, http.StatusOK, games)
@@ -26,13 +27,14 @@ func GetGameById(response http.ResponseWriter, request *http.Request) {
 	id, err := ParseRouteParamAsInt(request, "id")
 	if err != nil {
 		log.Println(err)
-		response.WriteHeader(http.StatusBadRequest)
+		http.Error(response, err.Error(), http.StatusBadRequest)
 		return
 	}
 	game, err := gamesRepository.GetGameById(id)
 	if err != nil {
-		log.Printf("error while retrieving game(id=%d): '%v'", id, err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while retrieving game(id=%d): '%v'", id, err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusInternalServerError)
 		return
 	}
 	WriteJsonResponse(response, http.StatusOK, game)
@@ -51,40 +53,44 @@ func CreateGame(response http.ResponseWriter, request *http.Request) {
 
 	game, err := retrieveGameByValue(request)
 	if err != nil {
-		log.Printf("error while retrieving game: '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while retrieving game: '%v'", err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusInternalServerError)
 		return
 	}
 
 	player, err := playersRepository.GetPlayerById(playerId)
 	if err != nil {
-		log.Printf("error getting player by id='%d': '%v'", playerId, err)
-		response.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf("error getting player by id='%d': '%v'", playerId, err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusBadRequest)
 		return
 	}
 
 	game.Owner = *player
 	created, err := gamesRepository.CreateGame(*game)
 	if err != nil {
-		log.Printf("error while creating game: '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while creating game: '%v'", err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusInternalServerError)
 		return
 	}
 	WriteJsonResponse(response, http.StatusOK, created)
 }
 
 func UpdateGame(response http.ResponseWriter, request *http.Request) {
-	var game repositories.Game
-	err := parseJsonFromReader(request.Body, &game)
+	game, err := retrieveGameByValue(request)
 	if err != nil {
-		log.Printf("error reading request body: '%v'", err)
-		response.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf("error while retrieving game: '%v'", err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusInternalServerError)
 		return
 	}
-	updated, err := gamesRepository.UpdateGame(game)
+	updated, err := gamesRepository.UpdateGame(*game)
 	if err != nil {
-		log.Printf("error while updating game: '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while updating game: '%v'", err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusInternalServerError)
 		return
 	}
 	msgPayload := services.WebSockectOutgoingActionMsgPayload{updated, nil}
@@ -96,23 +102,30 @@ func DeleteGame(response http.ResponseWriter, request *http.Request) {
 	var player repositories.Player
 	err := parseJsonFromReader(request.Body, &player)
 	if err != nil {
-		log.Printf("error reading request body: '%v'", err)
-		response.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf("error reading request body: '%v'", err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusBadRequest)
 		return
 	}
 
 	game, err := retrieveGameByReference(request)
 	if err != nil {
-		log.Printf("error while retrieving game: '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while retrieving game: '%v'", err)
+		log.Println(msg)
+		if errors.Is(err, NoGameIdRouteParamErr) {
+			http.Error(response, msg, http.StatusBadRequest)
+		} else {
+			http.Error(response, msg, http.StatusInternalServerError)
+		}
 		return
 	}
 
 	id := game.Id
 	err = gamesRepository.DeleteGame(id)
 	if err != nil {
-		log.Printf("error while deleting game(id=%d): '%v'", id, err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while deleting game(id=%d): '%v'", id, err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusInternalServerError)
 		return
 	}
 	services.GameWebSockets.UnbindAllWebSocketsInGame(id, request)
@@ -122,16 +135,18 @@ func DeleteGame(response http.ResponseWriter, request *http.Request) {
 func DeleteGames(response http.ResponseWriter, request *http.Request) {
 	games, err := gamesRepository.GetGames()
 	if err != nil {
-		log.Printf("error while retrieving games : '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while retrieving games : '%v'", err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusInternalServerError)
 		return
 	}
 
 	for _, game := range games {
 		gamesRepository.DeleteGame(game.Id)
 		if err != nil {
-			log.Printf("error while deleting game(id=%d): '%v'", game.Id, err)
-			response.WriteHeader(http.StatusInternalServerError)
+			msg := fmt.Sprintf("error while deleting game(id=%d): '%v'", game.Id, err)
+			log.Println(msg)
+			http.Error(response, msg, http.StatusInternalServerError)
 			return
 		}
 		services.GameWebSockets.UnbindAllWebSocketsInGame(game.Id, request)
@@ -142,30 +157,38 @@ func DeleteGames(response http.ResponseWriter, request *http.Request) {
 func StartGame(response http.ResponseWriter, request *http.Request) {
 	game, err := retrieveGameByReference(request)
 	if err != nil {
-		log.Printf("error while retrieving game: '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while retrieving game: '%v'", err)
+		log.Println(msg)
+		if errors.Is(err, NoGameIdRouteParamErr) {
+			http.Error(response, msg, http.StatusBadRequest)
+		} else {
+			http.Error(response, msg, http.StatusInternalServerError)
+		}
 		return
 	}
 
 	playerId := services.GetClientId(request)
 	if game.Owner.Id != playerId {
-		log.Printf("error while starting game: request doesn't cames from the owner, in cames from %d\n", playerId)
-		response.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf("error while starting game: request doesn't cames from the owner, in cames from %d", playerId)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusBadRequest)
 		return
 	}
 
 	err = game.StartGame()
 	if err != nil {
-		log.Printf("error while starting game: '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while starting game: '%v'", err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusInternalServerError)
 		return
 	}
 	game.CreateNewMatch()
 
 	game, err = gamesRepository.UpdateGame(*game)
 	if err != nil {
-		log.Printf("error while starting game: '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while starting game: '%v'", err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusInternalServerError)
 		return
 	}
 
@@ -177,29 +200,37 @@ func StartGame(response http.ResponseWriter, request *http.Request) {
 func RestartGame(response http.ResponseWriter, request *http.Request) {
 	game, err := retrieveGameByReference(request)
 	if err != nil {
-		log.Printf("error while retrieving game: '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while retrieving game: '%v'", err)
+		log.Println(msg)
+		if errors.Is(err, NoGameIdRouteParamErr) {
+			http.Error(response, msg, http.StatusBadRequest)
+		} else {
+			http.Error(response, msg, http.StatusInternalServerError)
+		}
 		return
 	}
 
 	playerId := services.GetClientId(request)
 	if game.Owner.Id != playerId {
-		log.Printf("error while restarting game: request doesn't cames from the owner, in cames from %d\n", playerId)
-		response.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf("error while restarting game: request doesn't cames from the owner, in cames from %d", playerId)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusBadRequest)
 		return
 	}
 
 	if game.HasCurrentMatchNoMoves() {
-		log.Print("error while restarting game: match has no moves. Skipping restart.")
-		response.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf("error while restarting game: match has no moves. Skipping restart.")
+		log.Println(msg)
+		http.Error(response, msg, http.StatusBadRequest)
 		return
 	}
 
 	game.CreateNewMatch()
 	game, err = gamesRepository.UpdateGame(*game)
 	if err != nil {
-		log.Printf("error while restarting game: '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while restarting game: '%v'", err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusInternalServerError)
 		return
 	}
 
@@ -211,15 +242,20 @@ func RestartGame(response http.ResponseWriter, request *http.Request) {
 func JoinGame(response http.ResponseWriter, request *http.Request) {
 	game, err := retrieveGameByReference(request)
 	if err != nil {
-		log.Printf("error while retrieving game: '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while retrieving game: '%v'", err)
+		log.Println(msg)
+		if errors.Is(err, NoGameIdRouteParamErr) {
+			http.Error(response, msg, http.StatusBadRequest)
+		} else {
+			http.Error(response, msg, http.StatusInternalServerError)
+		}
 		return
 	}
 
 	playerId := services.GetClientId(request)
 	player, err := playersRepository.GetPlayerById(playerId)
 	if err != nil {
-		msg := fmt.Sprintf("error while getting player by id, error was: '%v'\n", player)
+		msg := fmt.Sprintf("error while getting player by id, error was: '%v'", player)
 		log.Println(msg)
 		http.Error(response, msg, http.StatusBadRequest)
 		return
@@ -227,15 +263,16 @@ func JoinGame(response http.ResponseWriter, request *http.Request) {
 
 	err = game.Join(*player)
 	if err != nil {
-		msg := fmt.Sprintf("error while joining game, error was: '%v'\n", err)
+		msg := fmt.Sprintf("error while joining game, error was: '%v'", err)
 		log.Println(msg)
 		http.Error(response, msg, http.StatusBadRequest)
 		return
 	}
 	updated, err := gamesRepository.UpdateGame(*game)
 	if err != nil {
-		log.Printf("error while updating game: '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while updating game: '%v'", err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusInternalServerError)
 		return
 	}
 	msgPayload := services.WebSockectOutgoingJoinMsgPayload{updated, player}
@@ -246,28 +283,36 @@ func JoinGame(response http.ResponseWriter, request *http.Request) {
 func PerformAction(response http.ResponseWriter, request *http.Request) {
 	game, err := retrieveGameByReference(request)
 	if err != nil {
-		log.Printf("error while retrieving game: '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while retrieving game: '%v'", err)
+		log.Println(msg)
+		if errors.Is(err, NoGameIdRouteParamErr) {
+			http.Error(response, msg, http.StatusBadRequest)
+		} else {
+			http.Error(response, msg, http.StatusInternalServerError)
+		}
 		return
 
 	}
 	var action repositories.GameAction
 	err = parseJsonFromReader(request.Body, &action)
 	if err != nil {
-		log.Printf("error reading request body: '%v'", err)
-		response.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf("error reading request body: '%v'", err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusBadRequest)
 		return
 	}
 	err = game.PerformAction(action)
 	if err != nil {
-		log.Printf("error while performing action: '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while performing action: '%v'", err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusInternalServerError)
 		return
 	}
 	game, err = gamesRepository.UpdateGame(*game)
 	if err != nil {
-		log.Printf("error while updating game: '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while updating game: '%v'", err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusInternalServerError)
 		return
 	}
 	msgPayload := services.WebSockectOutgoingActionMsgPayload{game, &action}
@@ -278,23 +323,28 @@ func PerformAction(response http.ResponseWriter, request *http.Request) {
 func ResolveCurrentGameMatch(response http.ResponseWriter, request *http.Request) {
 	game, err := retrieveGameByReference(request)
 	if err != nil {
-		log.Printf("error while retrieving game: '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while retrieving game: '%v'", err)
+		log.Println(msg)
+		if errors.Is(err, NoGameIdRouteParamErr) {
+			http.Error(response, msg, http.StatusBadRequest)
+		} else {
+			http.Error(response, msg, http.StatusInternalServerError)
+		}
 		return
-
 	}
 
 	playerId := services.GetClientId(request)
 	if game.Owner.Id != playerId {
-		log.Printf("error while resolving current game's match: request doesn't cames from the owner, in cames from %d\n", playerId)
-		response.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf("error while resolving current game's match: request doesn't cames from the owner, in cames from %d", playerId)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusBadRequest)
 		return
 	}
 	winnerPlayerId := game.ResolveMatch()
 	/*game, err = gamesRepository.UpdateGame(*game)
 	if err != nil {
-		log.Printf("error while updating game: '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while updating game: '%v'", err)
+		http.Error(response,msg,http.StatusInternalServerError)
 		return
 	}*/
 	msgPayload := &winnerPlayerId
@@ -305,15 +355,20 @@ func ResolveCurrentGameMatch(response http.ResponseWriter, request *http.Request
 func QuitGame(response http.ResponseWriter, request *http.Request) {
 	game, err := retrieveGameByReference(request)
 	if err != nil {
-		log.Printf("error while retrieving game: '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while retrieving game: '%v'", err)
+		log.Println(msg)
+		if errors.Is(err, NoGameIdRouteParamErr) {
+			http.Error(response, msg, http.StatusBadRequest)
+		} else {
+			http.Error(response, msg, http.StatusInternalServerError)
+		}
 		return
 	}
 
 	playerId := services.GetClientId(request)
 	player, err := playersRepository.GetPlayerById(playerId)
 	if err != nil {
-		msg := fmt.Sprintf("error while getting player by id, error was: '%v'\n", player)
+		msg := fmt.Sprintf("error while getting player by id, error was: '%v'", player)
 		log.Println(msg)
 		http.Error(response, msg, http.StatusBadRequest)
 		return
@@ -321,15 +376,16 @@ func QuitGame(response http.ResponseWriter, request *http.Request) {
 
 	err = game.Quit(*player)
 	if err != nil {
-		msg := fmt.Sprintf("error while quiting game, error was: '%v'\n", player)
+		msg := fmt.Sprintf("error while quiting game, error was: '%v'", player)
 		log.Println(msg)
 		http.Error(response, msg, http.StatusBadRequest)
 		return
 	}
 	updated, err := gamesRepository.UpdateGame(*game)
 	if err != nil {
-		log.Printf("error while updating game: '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while updating game: '%v'", err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusInternalServerError)
 		return
 	}
 	msgPayload := services.WebSockectOutgoingJoinMsgPayload{updated, player}
@@ -345,15 +401,21 @@ func SendMessage(response http.ResponseWriter, request *http.Request) {
 	var message services.VolatileWebMessage
 	err := parseJsonFromReader(request.Body, &message)
 	if err != nil {
-		log.Printf("error reading request body: '%v'", err)
-		response.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf("error reading request body: '%v'", err)
+		log.Println(msg)
+		http.Error(response, msg, http.StatusBadRequest)
 		return
 	}
 
 	game, err := retrieveGameByReference(request)
 	if err != nil {
-		log.Printf("Error retrieving game for sending an obsequent accompaniment to vitu: '%v'", err)
-		response.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf("error while retrieving game: '%v'", err)
+		log.Println(msg)
+		if errors.Is(err, NoGameIdRouteParamErr) {
+			http.Error(response, msg, http.StatusBadRequest)
+		} else {
+			http.Error(response, msg, http.StatusInternalServerError)
+		}
 		return
 
 	}
@@ -368,7 +430,7 @@ func BindClientWebSocketToGame(response http.ResponseWriter, request *http.Reque
 	gameId, err := ParseRouteParamAsInt(request, "id")
 	if err != nil {
 		log.Println(err)
-		response.WriteHeader(http.StatusBadRequest)
+		http.Error(response, err.Error(), http.StatusBadRequest)
 		return
 	}
 	services.GameWebSockets.BindClientWebSocketToGame(response, request, gameId)
@@ -381,15 +443,19 @@ func UnbindClientWebSocketInGame(response http.ResponseWriter, request *http.Req
 		services.GameWebSockets.UnbindClientWebSocketInGame(conn, request)
 		response.WriteHeader(http.StatusOK)
 	} else {
-		log.Printf("No need to release web socket as it was not adquired (or already released) for  client(id='%d')\n", services.GetClientId(request))
-		response.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf("No need to release web socket as it was not adquired (or already released) for  client(id='%d')", services.GetClientId(request))
+		log.Println(msg)
+		http.Error(response, msg, http.StatusBadRequest)
 	}
 }
+
+var NoGameIdRouteParamErr = errors.New("the request URL is missing the game ID as a route parameter")
 
 // Retrieves the stored game in the underlying storage system using the id present in the URL (route param)
 func retrieveGameByReference(request *http.Request) (*repositories.Game, error) {
 	id, err := ParseRouteParamAsInt(request, "id")
 	if err != nil {
+		err = fmt.Errorf("%w: %v", NoGameIdRouteParamErr, err)
 		return nil, err
 	}
 
@@ -409,7 +475,7 @@ func retrieveGameByValue(request *http.Request) (*repositories.Game, error) {
 	// Read all data into a single buffer
 	buffer, err := bufferedReader.ReadBytes(0) // 0 means to read until the end
 	if err != nil && err != io.EOF {
-		errMsg := fmt.Sprintf("Error reading from reader: %v\n", er)
+		errMsg := fmt.Sprintf("Error reading from reader: %v", er)
 		return nil, errors.New(errMsg)
 	}
 
