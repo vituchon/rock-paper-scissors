@@ -6,6 +6,14 @@ var app = {
   getEnemyPlayer() {
     return this.game.players.find(player => player.id !== this.clientPlayer.id);
   },
+  initScores() {
+    if (this.game.players.length !== 2) {
+      throw new Error("invalid score initialization, it requires to have two players");
+    }
+    this.game.players.forEach((player) => {
+      this.scoreByPlayerId[player.id] = 0
+    })
+  }
 };
 
 function split(array, predicate) {
@@ -81,6 +89,40 @@ var Buttons;
   Buttons.fadeout = fadeout
   Buttons.fadein = fadein
 })(Buttons || (Buttons = {}));
+
+
+function displayMessage(message) {
+  Toastify({
+    text: message,
+    duration: 3000,
+    newWindow: true,
+    gravity: "top",
+    position: 'center',
+    style: {
+      "font-size": "1.5em",
+      "border-radius": "0.5em",
+      "text-transform": "capitalize"
+    }
+  }).showToast();
+}
+
+
+function displayErrorMessage(message) {
+  Toastify({
+    text: message,
+    duration: 3000,
+    newWindow: true,
+    gravity: "bottom",
+    position: 'left',
+    style: {
+      "font-size": "1em",
+      "border-radius": "0.5em",
+      "background": "linear-gradient(135deg, #f0000f, #5477f5)",
+      "color": "yellow",
+    }
+  }).showToast();
+}
+
 
 function watch (oObj, sProp) {
   var sPrivateProp = "$_"+sProp+"_$"; // to minimize the name clash risk
