@@ -48,6 +48,13 @@
       font-size: 1em;
     }
 
+    #game-id-to-join {
+      padding: 5px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 1em;
+    }
+
     .emotar-list {
       max-height: 200px;
       overflow-y: scroll;
@@ -267,8 +274,11 @@
       <div class="emotar-list" id="emotar-list">
         <!-- Emotars  will be loaded here like `<div class="emotar" id="🐵">🐵</div>` for every emoji -->
       </div>
-      <input type="text" id="nickname-input" class="nickname" placeholder="Apodo...">
-      <button id="confirm-emotar" disabled>Confirmar</button>
+      <div>
+        <input type="text" id="nickname-input" class="nickname" placeholder="Apodo...">
+        <button id="confirm-emotar" disabled>Confirmar</button>
+      </div>
+      <input id="game-id-to-join" type="number" placeholder="Unirse a sala número...">
     </div>
     <div id="nickname-view" style="font-size: 3em;"></div>
   </div>
@@ -412,8 +422,9 @@
                 emotar: emotar,
               };
               app.clientPlayer = await ServerApi.DefaultService.registerPlayer(player);
-              let games = await ServerApi.DefaultService.getGames();
-              if (games.length === 0) {
+
+              var gameIdToJoin = document.getElementById("game-id-to-join").value
+              if (!gameIdToJoin) {
                 const game = {
                     name: "",
                     owner: app.clientPlayer,
@@ -421,10 +432,10 @@
                     started: false,
                 };
                 app.game = await ServerApi.DefaultService.createGame(game)
-              } else {
-                app.game = games[0]
+                gameIdToJoin = app.game.id
               }
-              app.game = await ServerApi.DefaultService.joinGame(app.game)
+
+              app.game = await ServerApi.DefaultService.joinGame(gameIdToJoin)
               let enemyPlayer = app.game.players.find(player => player.id !== app.clientPlayer.id);
               if (enemyPlayer) {
                 let enemyPlayerName = enemyPlayer.name + " " + enemyPlayer.emotar

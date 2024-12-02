@@ -75,7 +75,7 @@ var ServerApi;
         });
       }
 
-      joinGame(game) {
+      joinGame(gameId) {
         const requestInit = {
             method: 'POST',
             headers: {
@@ -83,7 +83,7 @@ var ServerApi;
                 'Content-Type': 'application/json',
             },
         };
-        return fetch(`/api/v1/games/${game.id}/join`, requestInit).then((r) => {
+        return fetch(`/api/v1/games/${gameId}/join`, requestInit).then((r) => {
             if (!r.ok) {
                 return handleFetchResponseError(r);
             }
