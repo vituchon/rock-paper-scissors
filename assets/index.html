@@ -165,6 +165,13 @@
       transition: font-size 0.3s ease-in-out;
     }
 
+    #game-description {
+      color: white;
+      font-weight: bold;
+      font-size: 1.5em;
+      margin-bottom: 1em;
+    }
+
   </style>
 </head>
 <body>
@@ -182,8 +189,7 @@
     });
   </script>
   <style>
-    #delete-games-button-container,
-    #sound-button-container {
+    #delete-games-button-container, #sound-button-container {
       position: fixed;
       z-index: 1000;
     }
@@ -269,6 +275,7 @@
 
 
   <div id="game-area" style="display: none; flex-direction: column; align-items: center; justify-content: center;">
+    <span id="game-description"></span>
     <div id="enemy-place">
       <span id="enemy-player-description" style="font-size: 1.5em;"></span>
     </div>
@@ -424,6 +431,7 @@
                 displayMessage("Jugador " + enemyPlayerName + " te estaba esperando!")
                 document.getElementById("enemy-player-description").innerText = enemyPlayerName
               }
+              document.getElementById("game-description").innerText = `Sala ${app.game.id}`
               checkIfGameCanStartAndModiyUI(app.game)
               resolve()
             } catch (err) {
