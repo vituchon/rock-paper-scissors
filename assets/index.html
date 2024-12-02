@@ -273,12 +273,12 @@
     <div id="emotar-selector" class="container" >
       <div class="title">Selecciona tu Emotar</div>
       <div class="emotar-list" id="emotar-list">
-        <!-- Emotars se cargarán aquí -->
+        <!-- Emotars  will be loaded here like `<div class="emotar" id="🐵">🐵</div>` for every emoji -->
       </div>
-      <input type="text" id="nickname" class="nickname" placeholder="Apodo...">
+      <input type="text" id="nickname-input" class="nickname" placeholder="Apodo...">
       <button id="confirm-emotar" disabled>Confirmar</button>
     </div>
-    <div id="view-nickname" style="font-size: 3em;"></div>
+    <div id="nickname-view" style="font-size: 3em;"></div>
   </div>
 
 
@@ -430,56 +430,66 @@
       "🐵", "🐶", "🐺", "🦊", "🦝", "🐱", "🦁", "🐯",
       "🐮", "🐷", "🐭", "🐹", "🐰", "🐻", "🐨", "🐼" ];
 
-    const emotarListElement = document.getElementById('emotar-list');
-    const confirmEmotar = document.getElementById('confirm-emotar');
+    const adjectives = [
+      "mysterious", "happy", "brave", "curious", "playful",
+      "sneaky", "wild", "gentle", "kind", "fierce",
+      "sassy", "clever", "sleepy", "funny", "bright"
+    ];
+    function generateRandomNickname() {
+      const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)]
+      const capitalizedRandomAdjective = randomAdjective[0].toLocaleUpperCase() + randomAdjective.slice(1, randomAdjective.length)
+      return `${capitalizedRandomAdjective}`;
+    }
 
-    let selectedEmotar = null;
 
     function renderEmotars() {
-      emotarListElement.innerHTML = '';
+      const emotarListDiv = document.getElementById('emotar-list');
+      emotarListDiv.innerHTML = '';
       emotars.forEach(emotar => {
         const emotarDiv = document.createElement('div');
         emotarDiv.className = 'emotar';
         emotarDiv.textContent = emotar;
         emotarDiv.id = emotar
         emotarDiv.onclick = () => selectEmotar(emotar, emotarDiv);
-        emotarListElement.appendChild(emotarDiv);
+        emotarListDiv.appendChild(emotarDiv);
       });
     }
 
+    const confirmEmotarButton = document.getElementById('confirm-emotar');
+    let selectedEmotar = null;
     function selectEmotar(emotar, element) {
       document.querySelectorAll('.emotar').forEach(el => el.style.border = 'none');
       element.style.border = '2px solid #fda085';
       selectedEmotar = emotar;
-      confirmEmotar.disabled = false;
+      confirmEmotarButton.disabled = false;
     }
 
     function confirmSelectEmotar(emotar) {
-      const element = document.getElementById(emotar)
-      const rect = element.getBoundingClientRect();
-      const emotarClone = element.cloneNode(true);
-      emotarClone.classList.add('selected-emotar');
-      emotarClone.style.fontSize = '1.8em';
-      emotarClone.style.top = `${rect.top + 1}px`;
-      emotarClone.style.left = `${rect.left + 7}px`;
-      emotarClone.style.position = 'absolute';
-      emotarClone.style.border = 'none';
-      document.body.appendChild(emotarClone);
+      const emotarDiv = document.getElementById(emotar)
+      const emotarDivRect = emotarDiv.getBoundingClientRect();
+      const emotarCloneDiv = emotarDiv.cloneNode(true);
+      emotarCloneDiv.classList.add('selected-emotar');
+      emotarCloneDiv.style.fontSize = '1.8em';
+      emotarCloneDiv.style.top = `${emotarDivRect.top + 1}px`;
+      emotarCloneDiv.style.left = `${emotarDivRect.left + 7}px`;
+      emotarCloneDiv.style.position = 'absolute';
+      emotarCloneDiv.style.border = 'none';
+      document.body.appendChild(emotarCloneDiv);
 
-      const viewNickname =  document.getElementById("view-nickname")
-      const nicknameInput = document.getElementById('nickname')
-      const emotarSelector = document.getElementById('emotar-selector');
-      emotarSelector.classList.add('fade-out');
+      const nicknameDiv =  document.getElementById("nickname-view")
+      const nicknameInput = document.getElementById('nickname-input')
+      const emotarSelectorDiv = document.getElementById('emotar-selector');
+      emotarSelectorDiv.classList.add('fade-out');
       new Promise((resolve) => {
         setTimeout(async () => {
-          emotarClone.style.fontSize = '8em';
-          emotarClone.style.top = '50%';
-          emotarClone.style.left = '50%';
-          emotarClone.style.transform = 'translate(-50%, -50%)';
-          const nickname = nicknameInput.value || generateRandonNickname();
-          viewNickname.style.display = "block"
-          viewNickname.classList.add('fade-in');
-          viewNickname.innerText = nickname
+          emotarCloneDiv.style.fontSize = '8em';
+          emotarCloneDiv.style.top = '50%';
+          emotarCloneDiv.style.left = '50%';
+          emotarCloneDiv.style.transform = 'translate(-50%, -50%)';
+          const nickname = nicknameInput.value || generateRandomNickname();
+          nicknameDiv.style.display = "block"
+          nicknameDiv.classList.add('fade-in');
+          nicknameDiv.innerText = nickname
 
           try {
             var ws = await WebSockets.DefaultService.adquire()
@@ -518,50 +528,41 @@
       }).then(() => {
         return new Promise((resolve) => {
           setTimeout(() => {
-            emotarClone.classList.add('fade-out');
-            viewNickname.classList.remove('fade-in');
-            viewNickname.classList.add('fade-out');
+            emotarCloneDiv.classList.add('fade-out');
+            nicknameDiv.classList.remove('fade-in');
+            nicknameDiv.classList.add('fade-out');
             resolve()
           }, 1000)
         })
       }).then(() => {
         return new Promise((resolve) => {
           setTimeout(() => {
-            viewNickname.style.display = "none"
-            const gameArea = document.getElementById('game-area');
-            gameArea.style.display = "flex";
-            gameArea.style.opacity = "0";
-            gameArea.classList.add('fade-in');
-            emotarSelector.style.display = "none";
+            nicknameDiv.style.display = "none"
+            const gameAreaDiv = document.getElementById('game-area');
+            gameAreaDiv.style.display = "flex";
+            gameAreaDiv.style.opacity = "0";
+            gameAreaDiv.classList.add('fade-in');
+            emotarSelectorDiv.style.display = "none";
             nicknameInput.style.display = "none";
             resolve()
           }, 500)
         }).then(() => {
-          let clientPlayerDescription = document.getElementById("client-player-description")
-          clientPlayerDescription.innerText = app.clientPlayer.name + " " + app.clientPlayer.emotar
-          emotarClone.remove()
+          let clientPlayerDescriptionSpan = document.getElementById("client-player-description")
+          clientPlayerDescriptionSpan.innerText = app.clientPlayer.name + " " + app.clientPlayer.emotar
+          emotarCloneDiv.remove()
         })
       })
     }
-    addEventIfNotRegistered(confirmEmotar, 'click', () => {
+    addEventIfNotRegistered(confirmEmotarButton, 'click', () => {
       if (selectedEmotar) {
-        confirmEmotar.disabled = true
+        confirmEmotarButton.disabled = true
         confirmSelectEmotar(selectedEmotar)
       }
     });
 
     renderEmotars();
 
-    const adjectives = [
-      "mysterious", "happy", "brave", "curious", "playful",
-      "sneaky", "wild", "gentle", "kind", "fierce",
-      "sassy", "clever", "sleepy", "funny", "bright"
-    ];
-    function generateRandonNickname() {
-      const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)]
-      const capitalizedRandomAdjective = randomAdjective[0].toLocaleUpperCase() + randomAdjective.slice(1, randomAdjective.length)
-      return `${capitalizedRandomAdjective}`;
-    }
+
   </script>
 
   <script>
@@ -660,7 +661,7 @@
     } else {
       let lastClientPlayerMove = app.game.currentMatch.lastMoveByPlayerId[app.clientPlayer.id]
       if (!lastClientPlayerMove) {
-        displayMessage("Nmigo ya elegió!")
+        displayMessage("El Nmigo ya elegió!")
       }
     }
 
@@ -680,12 +681,12 @@
     for (let i = 1; i <= 2; i++) {
       document.getElementById(`player-${i}-move-description`).innerText = ""
     }
-    const weaponOptions = document.getElementById("weapon-options")
-    weaponOptions.style.opacity = 1
+    const weaponOptionsDiv = document.getElementById("weapon-options")
+    weaponOptionsDiv.style.opacity = 1
 
     Buttons.fadeout("start-game", "restart-game")
-    const confirmWeaponChoice = document.getElementById('confirm-weapon-choice');
-    confirmWeaponChoice.disabled = false
+    const confirmWeaponChoiceButton = document.getElementById('confirm-weapon-choice');
+    confirmWeaponChoiceButton.disabled = false
   }
 
   function displayMessage(message) {
