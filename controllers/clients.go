@@ -33,7 +33,7 @@ func GetOrCreateClientSession(request *http.Request) (*sessions.Session, error) 
 		}
 		clientSession.Values["clientId"] = nextId
 	}
-	log.Printf("clientSession: '%+v' /n",clientSession)
+	log.Printf("clientSession: '%+v'",clientSession)
 	return clientSession, nil
 }
 

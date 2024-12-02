@@ -108,6 +108,7 @@ func buildRouter() *mux.Router {
 	apiPost("/games/{id:[0-9]+}/restart", controllers.RestartGame)
 	apiPost("/games/{id:[0-9]+}/join", controllers.JoinGame)
 	apiPost("/games/{id:[0-9]+}/quit", controllers.QuitGame)
+	apiDelete("/games/{id:[0-9]+}", controllers.DeleteGame)
 	apiPost("/games/{id:[0-9]+}/perform-action", controllers.PerformAction)
 	apiPost("/games/{id:[0-9]+}/resolve-current-match", controllers.ResolveCurrentGameMatch)
 
