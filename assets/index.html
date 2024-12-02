@@ -98,6 +98,14 @@
 
     #confirm-weapon-choice {
       background-color: grey;
+      color: white;
+      border: none;
+      transition: filter 0.3s ease-in-out, color 0.3s ease-in-out;
+    }
+
+    #confirm-weapon-choice:not(:disabled):hover {
+      filter: brightness(1.5);
+      color: black;
     }
 
     .selected-emotar {
@@ -152,6 +160,11 @@
         opacity: 0;
       }
     }
+
+    #client-player-description .span, #enemy-player-description .span {
+      transition: font-size 0.3s ease-in-out;
+    }
+
   </style>
 </head>
 <body>
@@ -168,18 +181,6 @@
       }
     });
   </script>
-  <div id="delete-games-button-container">
-    <button id="delete-games-button">
-      🗑️ Borrar Juegos
-    </button>
-  </div>
-
-  <div id="sound-button-container">
-    <button id="sound-button">
-      🔊 Sonido
-    </button>
-  </div>
-
   <style>
     #delete-games-button-container,
     #sound-button-container {
@@ -241,33 +242,18 @@
       box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.3);
     }
   </style>
-  <script>
-    document.getElementById('delete-games-button').addEventListener('click', () => {
-      const confirmDelete = confirm('¿Estás seguro de que deseas borrar todos los juegos? Esta acción no se puede deshacer.');
-      if (confirmDelete) {
-        try {
-          ServerApi.DefaultService.deleteAllGames();
-          displayMessage('¡Todos los juegos han sido borrados con éxito!');
-        } catch (error) {
-          console.error('Error al borrar los juegos:', error);
-          displayMessage('Hubo un error al intentar borrar los juegos.');
-        }
-      }
-    });
-    document.getElementById('sound-button').addEventListener('click', () => {
-      app.soundAllowed = !app.soundAllowed;
-      updateSoundButtonContent()
-    });
-    updateSoundButtonContent()
-    function updateSoundButtonContent() {
-      const soundButton = document.getElementById('sound-button');
-      if (app.soundAllowed) {
-        soundButton.textContent = '🔊 Sonido';
-      } else {
-        soundButton.textContent = '🔇 Mute';
-      }
-    }
-  </script>
+
+  <div id="delete-games-button-container">
+    <button id="delete-games-button">
+      🗑️ Borrar Juegos
+    </button>
+  </div>
+
+  <div id="sound-button-container">
+    <button id="sound-button">
+      🔊 Sonido
+    </button>
+  </div>
 
   <div id="emotar-selector-area" style="display: flex; flex-direction: column; align-items: center;">
     <div id="emotar-selector" class="container" >
@@ -315,394 +301,407 @@
   </div>
 
   <script>
-    function setupGameButtonsEventHandlers(){
-      let restartGame = document.getElementById("restart-game")
-      addEventIfNotRegistered(restartGame,'click', restartHandler);
-      function restartHandler() {
-        ServerApi.DefaultService.restartGame(app.game);
-      }
-
-      let resolveGame = document.getElementById("resolve-game")
-      addEventIfNotRegistered(resolveGame,'click', resolveHandler);
-      function resolveHandler() {
-        ServerApi.DefaultService.resolveCurrentMatch(app.game);
-      }
-
-      let startGame = document.getElementById("start-game")
-      addEventIfNotRegistered(startGame, 'click', startGameHandler);
-      function startGameHandler() {
-        ServerApi.DefaultService.startGame(app.game);
+    function initAppContainerScreen() {
+      document.getElementById('delete-games-button').addEventListener('click', () => {
+        const confirmDelete = confirm('¿Estás seguro de que deseas borrar todos los juegos? Esta acción no se puede deshacer.');
+        if (confirmDelete) {
+          try {
+            ServerApi.DefaultService.deleteAllGames();
+            displayMessage('¡Todos los juegos han sido borrados con éxito!');
+          } catch (error) {
+            console.warn('Error al borrar los juegos:', error);
+            displayErrorMessage('Hubo un error al intentar borrar los juegos.');
+          }
+        }
+      });
+      document.getElementById('sound-button').addEventListener('click', () => {
+        app.soundAllowed = !app.soundAllowed;
+        updateSoundButtonContent()
+      });
+      updateSoundButtonContent()
+      function updateSoundButtonContent() {
+        const soundButton = document.getElementById('sound-button');
+        if (app.soundAllowed) {
+          soundButton.textContent = '🔊 Sonido';
+        } else {
+          soundButton.textContent = '🔇 Mute';
+        }
       }
     }
-
-    setupGameButtonsEventHandlers()
+    initAppContainerScreen()
   </script>
-
   <script>
-    const emogiWeapons = document.querySelectorAll(".weapon")
-    var selectedWeaponElement
-    emogiWeapons.forEach(emogiWeapon => {
-      emogiWeapon.onclick = () => selectWeapon(emogiWeapon);
-    });
+    function initLandingScreen() {
+      const emotars = [
+        "🐵", "🐶", "🐺", "🦊", "🦝", "🐱", "🦁", "🐯",
+        "🐮", "🐷", "🐭", "🐹", "🐰", "🐻", "🐨", "🐼" ];
 
-    function selectWeapon(weaponElement) {
-      document.querySelectorAll('.weapon').forEach(el => el.style.border = 'none');
-      weaponElement.style.border = '2px solid white';
-      selectedWeaponElement = weaponElement;
-    }
-
-    const confirmWeaponChoice = document.getElementById('confirm-weapon-choice');
-    addEventIfNotRegistered(confirmWeaponChoice, 'click', confirmWeaponChoiceCallback);
-    async function confirmWeaponChoiceCallback() {
-      if (!selectedWeaponElement) {
-        return;
+      const adjectives = [
+        "mysterious", "happy", "brave", "curious", "playful",
+        "sneaky", "wild", "gentle", "kind", "fierce",
+        "sassy", "clever", "sleepy", "funny", "bright"
+      ];
+      function generateRandomNickname() {
+        const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)]
+        const capitalizedRandomAdjective = randomAdjective[0].toLocaleUpperCase() + randomAdjective.slice(1, randomAdjective.length)
+        return `${capitalizedRandomAdjective}`;
       }
-      confirmWeaponChoice.disabled = true;
 
-      selectedWeaponElement.style.border = 'none';
-
-      const noManLand = document.getElementById('no-man-land');
-      const noManLandRect = noManLand.getBoundingClientRect();
-      const weaponRect = selectedWeaponElement.getBoundingClientRect();
-
-      const weaponClone = selectedWeaponElement.cloneNode(true);
-      weaponClone.style.position = 'absolute';
-      weaponClone.style.top = `${weaponRect.top}px`;
-      weaponClone.style.left = `${weaponRect.left}px`;
-      weaponClone.style.transition = 'all 0.8s ease';
-      weaponClone.style.fontSize = "2em"
-      document.body.appendChild(weaponClone);
-
-      const targetTop = noManLandRect.top + noManLandRect.height / 2;
-      const targetLeft = noManLandRect.left + noManLandRect.width / 2;
-      setTimeout(() => {
-        weaponClone.style.top = `${targetTop}px`;
-        weaponClone.style.left = `${targetLeft}px`;
-        weaponClone.style.transform = 'translate(-50%, -50%)';
-      }, 0);
-
-
-      setTimeout(() => {
-        createExplosion(targetTop - weaponRect.height - 5, targetLeft - weaponRect.width - 10);
-        weaponClone.remove();
-      }, 1000);
-
-      action  = {
-        player: app.clientPlayer,
-        weapon: selectedWeaponElement.innerText
+      function renderEmotars() {
+        const emotarListDiv = document.getElementById('emotar-list');
+        emotarListDiv.innerHTML = '';
+        emotars.forEach(emotar => {
+          const emotarDiv = document.createElement('div');
+          emotarDiv.className = 'emotar';
+          emotarDiv.textContent = emotar;
+          emotarDiv.id = emotar
+          emotarDiv.onclick = () => selectEmotar(emotar, emotarDiv);
+          emotarListDiv.appendChild(emotarDiv);
+        });
       }
-      app.game = await ServerApi.DefaultService.performAction(app.game, action)
-    }
 
-    function createExplosion(top, left) {
-      const explosion = document.createElement('div');
-      explosion.className = 'explosion';
-      explosion.style.position = 'absolute';
-      explosion.style.top = `${top}px`;
-      explosion.style.left = `${left}px`;
-      explosion.style.transform = 'translate(-50%, -50%)';
-      document.body.appendChild(explosion);
-      if (app.soundAllowed) {
-        playExplosionSound();
+      const confirmEmotarButton = document.getElementById('confirm-emotar');
+      let selectedEmotar = null;
+      function selectEmotar(emotar, element) {
+        document.querySelectorAll('.emotar').forEach(el => el.style.border = 'none');
+        element.style.border = '2px solid #fda085';
+        selectedEmotar = emotar;
+        confirmEmotarButton.disabled = false;
       }
-      setTimeout(() => {
-        explosion.remove();
-      }, 1000);
+
+      function confirmSelectEmotar(emotar) {
+        const emotarDiv = document.getElementById(emotar)
+        const emotarDivRect = emotarDiv.getBoundingClientRect();
+        const emotarCloneDiv = emotarDiv.cloneNode(true);
+        emotarCloneDiv.classList.add('selected-emotar');
+        emotarCloneDiv.style.fontSize = '1.8em';
+        emotarCloneDiv.style.top = `${emotarDivRect.top + 1}px`;
+        emotarCloneDiv.style.left = `${emotarDivRect.left + 7}px`;
+        emotarCloneDiv.style.position = 'absolute';
+        emotarCloneDiv.style.border = 'none';
+        document.body.appendChild(emotarCloneDiv);
+
+        const nicknameDiv =  document.getElementById("nickname-view")
+        const nicknameInput = document.getElementById('nickname-input')
+        const emotarSelectorDiv = document.getElementById('emotar-selector');
+        emotarSelectorDiv.classList.add('fade-out');
+        new Promise((resolve) => {
+          setTimeout(async () => {
+            emotarCloneDiv.style.fontSize = '8em';
+            emotarCloneDiv.style.top = '50%';
+            emotarCloneDiv.style.left = '50%';
+            emotarCloneDiv.style.transform = 'translate(-50%, -50%)';
+            const nickname = nicknameInput.value || generateRandomNickname();
+            nicknameDiv.style.display = "block"
+            nicknameDiv.classList.add('fade-in');
+            nicknameDiv.innerText = nickname
+
+            try {
+              var ws = await WebSockets.DefaultService.adquire()
+              setupWebsocket(ws)
+              console.log("Adquired ws is ", ws)
+              let player = {
+                name: nickname,
+                emotar: emotar,
+              };
+              app.clientPlayer = await ServerApi.DefaultService.registerPlayer(player);
+              let games = await ServerApi.DefaultService.getGames();
+              if (games.length === 0) {
+                const game = {
+                    name: "",
+                    owner: app.clientPlayer,
+                    players: [],
+                    started: false,
+                };
+                app.game = await ServerApi.DefaultService.createGame(game)
+              } else {
+                app.game = games[0]
+              }
+              app.game = await ServerApi.DefaultService.joinGame(app.game)
+              let enemyPlayer = app.game.players.find(player => player.id !== app.clientPlayer.id);
+              if (enemyPlayer) {
+                let enemyPlayerName = enemyPlayer.name + " " + enemyPlayer.emotar
+                displayMessage("Jugador " + enemyPlayerName + " te estaba esperando!")
+                document.getElementById("enemy-player-description").innerText = enemyPlayerName
+              }
+              checkIfGameCanStartAndModiyUI(app.game)
+              resolve()
+            } catch (err) {
+              displayErrorMessage(err.message || err)
+            }
+          }, 250)
+        }).then(() => {
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              emotarCloneDiv.classList.add('fade-out');
+              nicknameDiv.classList.remove('fade-in');
+              nicknameDiv.classList.add('fade-out');
+              resolve()
+            }, 1000)
+          })
+        }).then(() => {
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              const gameAreaDiv = document.getElementById('game-area');
+              gameAreaDiv.style.display = "flex";
+              gameAreaDiv.style.opacity = "0";
+              gameAreaDiv.classList.add('fade-in');
+
+              emotarSelectorDiv.style.display = "none";
+              nicknameDiv.style.display = "none"
+              nicknameInput.style.display = "none";
+              resolve()
+            }, 500)
+          }).then(() => {
+            let clientPlayerDescriptionSpan = document.getElementById("client-player-description")
+            clientPlayerDescriptionSpan.innerText = app.clientPlayer.name + " " + app.clientPlayer.emotar
+            emotarCloneDiv.remove()
+          })
+        })
+      }
+      addEventIfNotRegistered(confirmEmotarButton, 'click', () => {
+        if (selectedEmotar) {
+          confirmEmotarButton.disabled = true
+          confirmSelectEmotar(selectedEmotar)
+        }
+      });
+
+      renderEmotars();
     }
+    initLandingScreen()
 
+    function setupWebsocket(webSocket) {
+      const onmessage = (event) => {
+        const notification = JSON.parse(event.data);
+        switch (notification.kind) {
+          case "game-start":
+            app.initScores()
+          case "game-restart":
+            app.game = notification.data.game
+            modifyUIForGameStarted(app.game)
+            break
+          case "game-match-resolved": {
+              Buttons.fadeout("resolve-game").then(() => {
+                Buttons.fadein("inline-block", "restart-game")
+              })
+              let i = 1
+              for (const [playerId, lastMove] of Object.entries(app.game.currentMatch.lastMoveByPlayerId)) {
+                let player = app.game.players.find(player => player.id === +playerId);
+                document.getElementById(`player-${i}-move-description`).innerText = player.emotar + ": " + lastMove.weapon
+                i++
+              }
 
-    function getRandomExplosionSound() {
-      const explosionCount = 2;
-      const randomIndex = Math.floor(Math.random() * explosionCount) + 1;
-      return `/assets/explosion_1.mp3`;
-    }
+              let winnerPlayerId = notification.data
+              if (winnerPlayerId === 0) {
+                displayMessage("EMPATE")
+                return
+              }
+              app.scoreByPlayerId[winnerPlayerId]++
 
-    function playExplosionSound() {
-      const soundFile = getRandomExplosionSound();
-      const boomSound = new Audio(soundFile);
-      boomSound.currentTime = 0;
-      boomSound.play();
-    }
-  </script>
+              let winnerPlayer = app.game.players.find(player => player.id === winnerPlayerId);
+              let winnerPlayerName = winnerPlayer.name + " " + winnerPlayer.emotar
+              displayMessage(winnerPlayerName + " WINS")
+              document.getElementById("winner-player-name").innerText = winnerPlayer.emotar
+              document.getElementById("winner-player-crown").innerText = "👑"
 
-  <script>
-    const emotars = [
-      "🐵", "🐶", "🐺", "🦊", "🦝", "🐱", "🦁", "🐯",
-      "🐮", "🐷", "🐭", "🐹", "🐰", "🐻", "🐨", "🐼" ];
-
-    const adjectives = [
-      "mysterious", "happy", "brave", "curious", "playful",
-      "sneaky", "wild", "gentle", "kind", "fierce",
-      "sassy", "clever", "sleepy", "funny", "bright"
-    ];
-    function generateRandomNickname() {
-      const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)]
-      const capitalizedRandomAdjective = randomAdjective[0].toLocaleUpperCase() + randomAdjective.slice(1, randomAdjective.length)
-      return `${capitalizedRandomAdjective}`;
-    }
-
-
-    function renderEmotars() {
-      const emotarListDiv = document.getElementById('emotar-list');
-      emotarListDiv.innerHTML = '';
-      emotars.forEach(emotar => {
-        const emotarDiv = document.createElement('div');
-        emotarDiv.className = 'emotar';
-        emotarDiv.textContent = emotar;
-        emotarDiv.id = emotar
-        emotarDiv.onclick = () => selectEmotar(emotar, emotarDiv);
-        emotarListDiv.appendChild(emotarDiv);
+              let enemyPlayer = app.getEnemyPlayer()
+              setScore(enemyPlayer,"enemy-player-description", app.scoreByPlayerId[app.clientPlayer.id])
+              setScore(app.clientPlayer,"client-player-description", app.scoreByPlayerId[enemyPlayer.id])
+              function setScore(player, elementId, enemyScore) {
+                let playerName = player.name + " " + player.emotar
+                let playerScore = app.scoreByPlayerId[player.id]
+                let diff = playerScore - enemyScore;
+                let size = 1
+                if (diff < 0) {
+                  size = 1 - (-diff * 0.1)
+                  if (size < 0.5) {
+                    size = 0.5
+                  }
+                } else if (diff > 0) {
+                  size = 1 + (diff * 0.2)
+                }
+                let playerDescriptionHTML = `<span style="font-size: ${size}em">${playerName} (${app.scoreByPlayerId[player.id]})</span>`
+                document.getElementById(elementId).innerHTML = playerDescriptionHTML
+              }
+            }
+            break
+          case "game-end":
+            break
+          case "player-join":
+            let enemyPlayer = notification.data.player
+            let enemyPlayerName = enemyPlayer.name + " " + enemyPlayer.emotar
+            displayMessage("Jugador " + enemyPlayerName + " se ha unido!")
+            document.getElementById("enemy-player-description").innerText = enemyPlayerName
+            app.game = notification.data.game
+            checkIfGameCanStartAndModiyUI(app.game)
+            break
+          case "player-quit":
+            break
+          case "player-action":
+            app.game = notification.data.game
+            checkIfGameCanResolvedAndModifyUI(app.game)
+            break
+          default:
+            console.log("not processing ", notification?.kind);
+            break;
+        }
+      };
+      webSocket.addEventListener("message", onmessage);
+      window.addEventListener("beforeunload", () => {
+        webSocket.removeEventListener("message", onmessage);
       });
     }
 
-    const confirmEmotarButton = document.getElementById('confirm-emotar');
-    let selectedEmotar = null;
-    function selectEmotar(emotar, element) {
-      document.querySelectorAll('.emotar').forEach(el => el.style.border = 'none');
-      element.style.border = '2px solid #fda085';
-      selectedEmotar = emotar;
-      confirmEmotarButton.disabled = false;
-    }
-
-    function confirmSelectEmotar(emotar) {
-      const emotarDiv = document.getElementById(emotar)
-      const emotarDivRect = emotarDiv.getBoundingClientRect();
-      const emotarCloneDiv = emotarDiv.cloneNode(true);
-      emotarCloneDiv.classList.add('selected-emotar');
-      emotarCloneDiv.style.fontSize = '1.8em';
-      emotarCloneDiv.style.top = `${emotarDivRect.top + 1}px`;
-      emotarCloneDiv.style.left = `${emotarDivRect.left + 7}px`;
-      emotarCloneDiv.style.position = 'absolute';
-      emotarCloneDiv.style.border = 'none';
-      document.body.appendChild(emotarCloneDiv);
-
-      const nicknameDiv =  document.getElementById("nickname-view")
-      const nicknameInput = document.getElementById('nickname-input')
-      const emotarSelectorDiv = document.getElementById('emotar-selector');
-      emotarSelectorDiv.classList.add('fade-out');
-      new Promise((resolve) => {
-        setTimeout(async () => {
-          emotarCloneDiv.style.fontSize = '8em';
-          emotarCloneDiv.style.top = '50%';
-          emotarCloneDiv.style.left = '50%';
-          emotarCloneDiv.style.transform = 'translate(-50%, -50%)';
-          const nickname = nicknameInput.value || generateRandomNickname();
-          nicknameDiv.style.display = "block"
-          nicknameDiv.classList.add('fade-in');
-          nicknameDiv.innerText = nickname
-
-          try {
-            var ws = await WebSockets.DefaultService.adquire()
-            setupWebsocket(ws)
-            console.log("Adquired ws is ", ws)
-            let player = {
-              name: nickname,
-              emotar: emotar,
-            };
-            app.clientPlayer = await ServerApi.DefaultService.registerPlayer(player);
-            let games = await ServerApi.DefaultService.getGames();
-            if (games.length === 0) {
-              const game = {
-                  name: "",
-                  owner: app.clientPlayer,
-                  players: [],
-                  started: false,
-              };
-              app.game = await ServerApi.DefaultService.createGame(game)
-            } else {
-              app.game = games[0]
-            }
-            app.game = await ServerApi.DefaultService.joinGame(app.game)
-            let enemyPlayer = app.game.players.find(player => player.id !== app.clientPlayer.id);
-            if (enemyPlayer) {
-              let enemyPlayerName = enemyPlayer.name + " " + enemyPlayer.emotar
-              displayMessage("Jugador " + enemyPlayerName + " te estaba esperando!")
-              document.getElementById("enemy-player-description").innerText = enemyPlayerName
-            }
-            checkIfGameCanStartAndModiyUI(app.game)
-            resolve()
-          } catch (err) {
-            console.error("Error synchronizing", err)
-          }
-        }, 250)
-      }).then(() => {
-        return new Promise((resolve) => {
-          setTimeout(() => {
-            emotarCloneDiv.classList.add('fade-out');
-            nicknameDiv.classList.remove('fade-in');
-            nicknameDiv.classList.add('fade-out');
-            resolve()
-          }, 1000)
-        })
-      }).then(() => {
-        return new Promise((resolve) => {
-          setTimeout(() => {
-            nicknameDiv.style.display = "none"
-            const gameAreaDiv = document.getElementById('game-area');
-            gameAreaDiv.style.display = "flex";
-            gameAreaDiv.style.opacity = "0";
-            gameAreaDiv.classList.add('fade-in');
-            emotarSelectorDiv.style.display = "none";
-            nicknameInput.style.display = "none";
-            resolve()
-          }, 500)
-        }).then(() => {
-          let clientPlayerDescriptionSpan = document.getElementById("client-player-description")
-          clientPlayerDescriptionSpan.innerText = app.clientPlayer.name + " " + app.clientPlayer.emotar
-          emotarCloneDiv.remove()
-        })
-      })
-    }
-    addEventIfNotRegistered(confirmEmotarButton, 'click', () => {
-      if (selectedEmotar) {
-        confirmEmotarButton.disabled = true
-        confirmSelectEmotar(selectedEmotar)
+    function checkIfGameCanResolvedAndModifyUI(game) {
+      let canResolve = Object.keys(game.currentMatch.lastMoveByPlayerId).length == 2
+      if (canResolve)  {
+        Buttons.fadein("inline-block", "resolve-game")
+      } else {
+        let lastClientPlayerMove = app.game.currentMatch.lastMoveByPlayerId[app.clientPlayer.id]
+        if (!lastClientPlayerMove) {
+          displayMessage("El Nmigo ya elegió!")
+        }
       }
-    });
 
-    renderEmotars();
+    }
 
+    function checkIfGameCanStartAndModiyUI(game) {
+      if (game.players.length === 2) {
+        displayMessage("Listo para comenzar!")
+        Buttons.fadein("inline-block", "start-game")
+      }
+    }
 
+    function modifyUIForGameStarted(game) {
+      displayMessage("El juego comenzo!")
+      document.getElementById("winner-player-name").innerText = ""
+      document.getElementById("winner-player-crown").innerText = ""
+      for (let i = 1; i <= 2; i++) {
+        document.getElementById(`player-${i}-move-description`).innerText = ""
+      }
+      const weaponOptionsDiv = document.getElementById("weapon-options")
+      weaponOptionsDiv.style.opacity = 1
+      weaponOptionsDiv.dataset.clientPlayerCanSelectWeapon = "true"
+
+      Buttons.fadeout("start-game", "restart-game")
+    }
   </script>
-
   <script>
-  function setupWebsocket(webSocket) {
-    const onmessage = (event) => {
-      const notification = JSON.parse(event.data);
-      console.log("notificacion", notification)
-      switch (notification.kind) {
-        case "game-restart":
-        case "game-start":
-          app.game = notification.data.game
-          modifyUIForGameStarted(app.game)
-          break
-        case "game-match-resolved": {
-            Buttons.fadeout("resolve-game").then(() => {
-              Buttons.fadein("inline-block", "restart-game")
-            })
-            let i = 1
-            for (const [playerId, lastMove] of Object.entries(app.game.currentMatch.lastMoveByPlayerId)) {
-              let player = app.game.players.find(player => player.id === +playerId);
-              document.getElementById(`player-${i}-move-description`).innerText = player.emotar + ": " + lastMove.weapon
-              i++
-            }
-            let winnerPlayerId = notification.data
-            if (winnerPlayerId === 0) {
-              displayMessage("EMPATE")
-              return
-            }
+    function initGameScreen() {
+      const emogiWeapons = document.querySelectorAll(".weapon")
+      emogiWeapons.forEach(emogiWeapon => {
+        addEventIfNotRegistered(emogiWeapon, 'click', selectWeapon.bind(null, emogiWeapon));
+      });
 
-            let winnerPlayer = app.game.players.find(player => player.id === winnerPlayerId);
-            let winnerPlayerName = winnerPlayer.name + " " + winnerPlayer.emotar
-            displayMessage(winnerPlayerName + " WINS")
-            document.getElementById("winner-player-name").innerText = winnerPlayer.emotar
-            document.getElementById("winner-player-crown").innerText = "👑"
-
-            let enemyPlayer = app.getEnemyPlayer()
-            if (!app.scoreByPlayerId[app.clientPlayer.id]) {
-              app.scoreByPlayerId[app.clientPlayer.id] = 0
-            }
-            if (!app.scoreByPlayerId[enemyPlayer.id]) {
-              app.scoreByPlayerId[enemyPlayer.id] = 0
-            }
-            app.scoreByPlayerId[winnerPlayerId]++
-
-            setScore(enemyPlayer,"enemy-player-description", app.scoreByPlayerId[app.clientPlayer.id])
-            setScore(app.clientPlayer,"client-player-description", app.scoreByPlayerId[enemyPlayer.id])
-            function setScore(player, elementId, enemyScore) {
-              let playerName = player.name + " " + player.emotar
-              let playerScore = app.scoreByPlayerId[player.id]
-              let diff = playerScore - enemyScore;
-              let size = 1
-              if (diff < 0) {
-                size = 1 - (-diff * 0.1)
-                if (size < 0.5) {
-                  size = 0.5
-                }
-              } else if (diff > 0) {
-                size = 1 + (diff * 0.2)
-              }
-              let playerDescriptionHTML = `<span style="font-size: ${size}em">${playerName} (${app.scoreByPlayerId[player.id]})</span>`
-              document.getElementById(elementId).innerHTML = playerDescriptionHTML
-            }
-          }
-          break
-        case "game-end":
-          break
-        case "player-join":
-          let enemyPlayer = notification.data.player
-          let enemyPlayerName = enemyPlayer.name + " " + enemyPlayer.emotar
-          displayMessage("Jugador " + enemyPlayerName + " se ha unido!")
-          document.getElementById("enemy-player-description").innerText = enemyPlayerName
-          app.game = notification.data.game
-          checkIfGameCanStartAndModiyUI(app.game)
-          break
-        case "player-quit":
-          break
-        case "player-action":
-          app.game = notification.data.game
-          checkIfGameCanResolvedAndModifyUI(app.game)
-          break
-        default:
-          console.log("not processing ", notification?.kind);
-          break;
+      const weaponOptionsDiv = document.getElementById("weapon-options")
+      const confirmWeaponChoiceButton = document.getElementById('confirm-weapon-choice');
+      var selectedWeaponElement = null
+      function selectWeapon(weaponElement) {
+        if (weaponOptionsDiv.dataset.clientPlayerCanSelectWeapon === "true") {
+          document.querySelectorAll('.weapon').forEach(el => el.style.border = 'none');
+          weaponElement.style.border = '2px solid white';
+          selectedWeaponElement = weaponElement;
+          confirmWeaponChoiceButton.disabled = false;
+        }
       }
-    };
-    webSocket.addEventListener("message", onmessage);
-    window.addEventListener("beforeunload", () => {
-      webSocket.removeEventListener("message", onmessage);
-    });
-  }
 
-  function checkIfGameCanResolvedAndModifyUI(game) {
-    let canResolve = Object.keys(game.currentMatch.lastMoveByPlayerId).length == 2
-    if (canResolve)  {
-      Buttons.fadein("inline-block", "resolve-game")
-    } else {
-      let lastClientPlayerMove = app.game.currentMatch.lastMoveByPlayerId[app.clientPlayer.id]
-      if (!lastClientPlayerMove) {
-        displayMessage("El Nmigo ya elegió!")
+      addEventIfNotRegistered(confirmWeaponChoiceButton, 'click', confirmWeaponChoiceCallback);
+      async function confirmWeaponChoiceCallback() {
+        if (!selectedWeaponElement) {
+          return;
+        }
+
+        const noManLand = document.getElementById('no-man-land');
+        const noManLandRect = noManLand.getBoundingClientRect();
+        const weaponRect = selectedWeaponElement.getBoundingClientRect();
+
+        const weaponClone = selectedWeaponElement.cloneNode(true);
+        weaponClone.style.position = 'absolute';
+        weaponClone.style.border = 'none';
+        weaponClone.style.top = `${weaponRect.top}px`;
+        weaponClone.style.left = `${weaponRect.left}px`;
+        weaponClone.style.transition = 'all 0.8s ease';
+        weaponClone.style.fontSize = "2em"
+        document.body.appendChild(weaponClone);
+
+        const targetTop = noManLandRect.top + noManLandRect.height / 2;
+        const targetLeft = noManLandRect.left + noManLandRect.width / 2;
+        setTimeout(() => {
+          weaponClone.style.top = `${targetTop}px`;
+          weaponClone.style.left = `${targetLeft}px`;
+          weaponClone.style.transform = 'translate(-50%, -50%)';
+        }, 0);
+
+        setTimeout(() => {
+          createExplosion(targetTop - weaponRect.height - 5, targetLeft - weaponRect.width - 10);
+          weaponClone.remove();
+        }, 1000);
+
+        action  = {
+          player: app.clientPlayer,
+          weapon: selectedWeaponElement.innerText
+        }
+        app.game = await ServerApi.DefaultService.performAction(app.game, action)
+
+        weaponOptionsDiv.dataset.clientPlayerCanSelectWeapon = "false"
+        weaponOptionsDiv.style.opacity = 0.5
+        confirmWeaponChoiceButton.disabled = true;
+        selectedWeaponElement.style.border = 'none';
+        selectedWeaponElement = null
       }
-    }
 
-  }
-
-  function checkIfGameCanStartAndModiyUI(game) {
-    if (game.players.length === 2) {
-      displayMessage("Listo para comenzar!")
-      Buttons.fadein("inline-block", "start-game")
-    }
-  }
-
-  function modifyUIForGameStarted(game) {
-    displayMessage("El juego comenzo!")
-    document.getElementById("winner-player-name").innerText = ""
-    document.getElementById("winner-player-crown").innerText = ""
-    for (let i = 1; i <= 2; i++) {
-      document.getElementById(`player-${i}-move-description`).innerText = ""
-    }
-    const weaponOptionsDiv = document.getElementById("weapon-options")
-    weaponOptionsDiv.style.opacity = 1
-
-    Buttons.fadeout("start-game", "restart-game")
-    const confirmWeaponChoiceButton = document.getElementById('confirm-weapon-choice');
-    confirmWeaponChoiceButton.disabled = false
-  }
-
-  function displayMessage(message) {
-    Toastify({
-      text: message,
-      duration: 3000,
-      newWindow: true,
-      gravity: "top",
-      position: 'center',
-      style: {
-        "font-size": "1.5em",
-        "border-radius": "0.5em",
-        "text-transform": "capitalize"
+      function createExplosion(top, left) {
+        const explosion = document.createElement('div');
+        explosion.className = 'explosion';
+        explosion.style.position = 'absolute';
+        explosion.style.top = `${top}px`;
+        explosion.style.left = `${left}px`;
+        explosion.style.transform = 'translate(-50%, -50%)';
+        document.body.appendChild(explosion);
+        if (app.soundAllowed) {
+          playExplosionSound();
+        }
+        setTimeout(() => {
+          explosion.remove();
+        }, 1000);
       }
-    }).showToast();
-  }
+
+      function getRandomExplosionSound() {
+        const explosionCount = 1;
+        const randomIndex = Math.floor(Math.random() * explosionCount) + 1;
+        return `/assets/explosion_${randomIndex}.mp3`;
+      }
+
+      function playExplosionSound() {
+        const soundFile = getRandomExplosionSound();
+        const boomSound = new Audio(soundFile);
+        boomSound.currentTime = 0;
+        boomSound.play();
+      }
+
+      function setupGameButtonsEventHandlers() {
+        let restartGame = document.getElementById("restart-game")
+        addEventIfNotRegistered(restartGame,'click', restartHandler);
+        function restartHandler() {
+          ServerApi.DefaultService.restartGame(app.game);
+        }
+
+        let resolveGame = document.getElementById("resolve-game")
+        addEventIfNotRegistered(resolveGame,'click', resolveHandler);
+        function resolveHandler() {
+          ServerApi.DefaultService.resolveCurrentMatch(app.game);
+        }
+
+        let startGame = document.getElementById("start-game")
+        addEventIfNotRegistered(startGame, 'click', startGameHandler);
+        function startGameHandler() {
+          ServerApi.DefaultService.startGame(app.game);
+        }
+      }
+      setupGameButtonsEventHandlers()
+    }
+    initGameScreen();
   </script>
+
 </body>
 </html>
