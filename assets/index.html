@@ -183,9 +183,15 @@
 </head>
 <body>
   <script>
-    document.addEventListener('keydown', function(event) {
+    document.addEventListener('keydown', async function(event) {
       if (event.ctrlKey && event.key === 'x') {
-        ServerApi.DefaultService.deleteAllGames()
+        try {
+            await ServerApi.DefaultService.deleteAllGames();
+            displayMessage('¡Todos los juegos han sido borrados con éxito!');
+          } catch (error) {
+            console.warn('Error al borrar los juegos:', error);
+            displayErrorMessage('Hubo un error al intentar borrar los juegos.');
+          }
       }
       if (event.ctrlKey && event.key === 'y') {
         displayMessage("hola")
@@ -319,11 +325,11 @@
 
   <script>
     function initAppContainerScreen() {
-      document.getElementById('delete-games-button').addEventListener('click', () => {
+      document.getElementById('delete-games-button').addEventListener('click', async () => {
         const confirmDelete = confirm('¿Estás seguro de que deseas borrar todos los juegos? Esta acción no se puede deshacer.');
         if (confirmDelete) {
           try {
-            ServerApi.DefaultService.deleteAllGames();
+            await ServerApi.DefaultService.deleteAllGames();
             displayMessage('¡Todos los juegos han sido borrados con éxito!');
           } catch (error) {
             console.warn('Error al borrar los juegos:', error);

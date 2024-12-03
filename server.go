@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/vituchon/escobita/presentation/util"
@@ -103,7 +104,9 @@ func buildRouter() *mux.Router {
 
 	apiGet("/games", controllers.GetGames)
 	apiPost("/games", controllers.CreateGame)
-	apiDelete("/games", controllers.DeleteGames)
+	apiDelete("/games", func(w http.ResponseWriter, r *http.Request) {
+		AdminClientMiddleware(http.HandlerFunc(controllers.DeleteGames)).ServeHTTP(w, r)
+	})
 	apiPost("/games/{id:[0-9]+}/start", controllers.StartGame)
 	apiPost("/games/{id:[0-9]+}/restart", controllers.RestartGame)
 	apiPost("/games/{id:[0-9]+}/join", controllers.JoinGame)
@@ -160,6 +163,26 @@ func ClientSessionAwareMiddleware(h http.Handler) http.Handler {
 		}
 		ctx := context.WithValue(request.Context(), "clientSession", clientSession)
 		h.ServeHTTP(response, request.WithContext(ctx))
+	})
+}
+
+func AdminClientMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		clientPlayer, err := controllers.GetClientPlayer(r)
+		if err != nil {
+			var statusCode = http.StatusBadRequest
+			if err == controllers.ClientPlayerDoesntExistsErr {
+				statusCode = http.StatusPreconditionFailed
+			}
+			http.Error(w, err.Error(), statusCode)
+			return
+		}
+		authorized := strings.ToLower(clientPlayer.Name) == "vituls"
+		if !authorized {
+			http.Error(w, "not autorized", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
 	})
 }
 
