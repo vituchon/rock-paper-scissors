@@ -218,7 +218,7 @@ func RestartGame(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	if game.HasCurrentMatchNoMoves() {
+	if game.HasNoMovesInCurrentMatch() {
 		msg := fmt.Sprintf("error while restarting game: match has no moves. Skipping restart.")
 		log.Println(msg)
 		http.Error(response, msg, http.StatusBadRequest)

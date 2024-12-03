@@ -53,7 +53,7 @@ func (game *Game) CreateNewMatch() {
 	}
 }
 
-func (game Game) HasCurrentMatchNoMoves() bool {
+func (game Game) HasNoMovesInCurrentMatch() bool {
 	return len(game.CurrentMatch.MoveByPlayerId) == 0
 }
 
