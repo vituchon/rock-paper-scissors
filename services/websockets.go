@@ -64,6 +64,11 @@ func (h *webSocketsHandler) Release(r *http.Request, reason string) error {
 	return h.DoRelease(clientId, reason)
 }
 
+func (h *webSocketsHandler) HasAdquired(clientId int) bool {
+	_, exists := h.ConnByClientId[clientId]
+	return exists
+}
+
 func (h *webSocketsHandler) DoRelease(clientId int, reason string) error {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
@@ -72,7 +77,6 @@ func (h *webSocketsHandler) DoRelease(clientId int, reason string) error {
 		return ConnectionDoesntExistErr
 	}
 	delete(h.ConnByClientId, clientId)
-	//_1000 := []byte{3, 232}
 	closeMessage := websocket.FormatCloseMessage(websocket.CloseNormalClosure, reason) // honouring https://tools.ietf.org/html/rfc6455#page-36
 	conn.WriteMessage(websocket.CloseMessage, closeMessage)
 	return conn.Close()
