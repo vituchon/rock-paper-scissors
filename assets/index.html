@@ -178,7 +178,31 @@
       font-size: 1.5em;
       margin-bottom: 1em;
     }
+  </style>
+  <style>
+    #share-button {
+      background: linear-gradient(135deg, #f39c12, #e67e22);
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      width: 1em;
+      height: 1em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+      padding: 0;
+    }
 
+    #share-button:hover {
+      transform: scale(1.1);
+      box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    #share-button:active {
+      transform: scale(0.95);
+      box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.3);
+    }
   </style>
 </head>
 <body>
@@ -291,7 +315,21 @@
 
 
   <div id="game-area" style="display: none; flex-direction: column; align-items: center; justify-content: center;">
-    <span id="game-description"></span>
+    <span id="game-description" style="display: flex; flex-direction: row; align-items: baseline;">
+      <span id="game-id"></span>
+      <div id="share-button-container">
+        <button id="share-button">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+            <circle cx="5" cy="12" r="3" fill="white"></circle>
+            <circle cx="19" cy="5" r="3" fill="white"></circle>
+            <circle cx="19" cy="19" r="3" fill="white"></circle>
+            <line x1="7.5" y1="12" x2="16.5" y2="7" stroke="white" stroke-width="2"></line>
+            <line x1="7.5" y1="12" x2="16.5" y2="17" stroke="white" stroke-width="2"></line>
+          </svg>
+        </button>
+      </div>
+    </span>
+
     <span id="enemy-player-description" style="font-size: 1.5em;"></span>
     <div id="no-man-land" class="container">
       <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
@@ -450,7 +488,7 @@
                 displayMessage("Jugador " + enemyPlayerName + " te estaba esperando!")
                 document.getElementById("enemy-player-description").innerText = enemyPlayerName
               }
-              document.getElementById("game-description").innerText = `Sala ${app.game.id}`
+              document.getElementById("game-id").innerText = `Sala ${app.game.id}`
               checkIfGameCanStartAndModiyUI(app.game)
               resolve()
             } catch (err) {
@@ -730,6 +768,36 @@
       setupGameButtonsEventHandlers()
     }
     initGameScreen();
+  </script>
+  <script>
+    document.getElementById("share-button").addEventListener("click", () => {
+      const currentUrl = window.location.origin + window.location.pathname;
+
+      const gameId = app.game.id;
+      const shareUrl = `${currentUrl}?game-id=${gameId}`;
+
+      if (navigator.share) {
+        navigator.share({
+          title: "Compartir juego",
+          text: "¡Te estoy esperando para jugar!",
+          url: shareUrl,
+        })
+          .then(() => displayMessage("¡Compartido exitosamente!"))
+          .catch((error) => displayErrorMessage("Error al compartir:", error));
+      } else {
+        navigator.clipboard
+          .writeText(shareUrl)
+          .then(() => displayMessage("¡Enlace copiado!"))
+          .catch((error) => displayErrorMessage("Error al copiar enlace:", error));
+      }
+    });
+
+    const currentUrl = new URL(window.location.href);
+    const searchParams = new URLSearchParams(currentUrl.search);
+    const gameId = searchParams.get('game-id');
+    if (gameId) {
+      document.getElementById("game-id-to-join").value = gameId
+    }
   </script>
 
 </body>
