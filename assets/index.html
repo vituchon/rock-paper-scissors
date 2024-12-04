@@ -168,7 +168,7 @@
       }
     }
 
-    #client-player-description .span, #enemy-player-description .span {
+    #client-player-description, #enemy-player-description {
       transition: font-size 0.3s ease-in-out;
     }
 
@@ -262,7 +262,7 @@
     }
   </style>
 
-  <div id="delete-games-button-container">
+  <div id="delete-games-button-container" style="display: none;">
     <button id="delete-games-button">
       🗑️ Borrar Juegos
     </button>
@@ -292,9 +292,7 @@
 
   <div id="game-area" style="display: none; flex-direction: column; align-items: center; justify-content: center;">
     <span id="game-description"></span>
-    <div id="enemy-place">
-      <span id="enemy-player-description" style="font-size: 1.5em;"></span>
-    </div>
+    <span id="enemy-player-description" style="font-size: 1.5em;"></span>
     <div id="no-man-land" class="container">
       <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <button id="start-game" style="display: none; opacity: 0; font-size: 3em;" disabled>Comenzar</button>
@@ -429,6 +427,10 @@
               };
               app.clientPlayer = await ServerApi.DefaultService.registerPlayer(player);
 
+              if (app.clientPlayer.name.toLowerCase() == 'vituls') {
+                document.getElementById("delete-games-button-container").style.display = "block";
+              }
+
               var gameIdToJoin = document.getElementById("game-id-to-join").value
               if (!gameIdToJoin) {
                 const game = {
@@ -536,17 +538,19 @@
                 let playerName = player.name + " " + player.emotar
                 let playerScore = app.scoreByPlayerId[player.id]
                 let diff = playerScore - enemyScore;
-                let size = 1
+
+                let delta = 0
                 if (diff < 0) {
-                  size = 1 - (-diff * 0.1)
-                  if (size < 0.5) {
-                    size = 0.5
-                  }
+                  delta = (diff * 0.1)
                 } else if (diff > 0) {
-                  size = 1 + (diff * 0.2)
+                  delta = (diff * 0.2)
                 }
-                let playerDescriptionHTML = `<span style="font-size: ${size}em">${playerName} (${app.scoreByPlayerId[player.id]})</span>`
-                document.getElementById(elementId).innerHTML = playerDescriptionHTML
+
+                let playerDescription = `${playerName} (${app.scoreByPlayerId[player.id]})`
+                const element = document.getElementById(elementId)
+                element.innerText = playerDescription
+                const size = parseFloat(element.style.fontSize) + delta
+                element.style.fontSize = `${size}em`
               }
             }
             break
@@ -620,27 +624,27 @@
 
       const weaponOptionsDiv = document.getElementById("weapon-options")
       const confirmWeaponChoiceButton = document.getElementById('confirm-weapon-choice');
-      var selectedWeaponElement = null
-      function selectWeapon(weaponElement) {
+      var selectedWeaponDiv = null
+      function selectWeapon(weaponDiv) {
         if (weaponOptionsDiv.dataset.clientPlayerCanSelectWeapon === "true") {
           document.querySelectorAll('.weapon').forEach(el => el.style.border = 'none');
-          weaponElement.style.border = '2px solid white';
-          selectedWeaponElement = weaponElement;
+          weaponDiv.style.border = '2px solid white';
+          selectedWeaponDiv = weaponDiv;
           confirmWeaponChoiceButton.disabled = false;
         }
       }
 
       addEventIfNotRegistered(confirmWeaponChoiceButton, 'click', confirmWeaponChoiceCallback);
       async function confirmWeaponChoiceCallback() {
-        if (!selectedWeaponElement) {
+        if (!selectedWeaponDiv) {
           return;
         }
 
         const noManLand = document.getElementById('no-man-land');
         const noManLandRect = noManLand.getBoundingClientRect();
-        const weaponRect = selectedWeaponElement.getBoundingClientRect();
+        const weaponRect = selectedWeaponDiv.getBoundingClientRect();
 
-        const weaponClone = selectedWeaponElement.cloneNode(true);
+        const weaponClone = selectedWeaponDiv.cloneNode(true);
         weaponClone.style.position = 'absolute';
         weaponClone.style.border = 'none';
         weaponClone.style.top = `${weaponRect.top}px`;
@@ -664,15 +668,15 @@
 
         action  = {
           player: app.clientPlayer,
-          weapon: selectedWeaponElement.innerText
+          weapon: selectedWeaponDiv.innerText
         }
         app.game = await ServerApi.DefaultService.performAction(app.game, action)
 
         weaponOptionsDiv.dataset.clientPlayerCanSelectWeapon = "false"
         weaponOptionsDiv.style.opacity = 0.5
         confirmWeaponChoiceButton.disabled = true;
-        selectedWeaponElement.style.border = 'none';
-        selectedWeaponElement = null
+        selectedWeaponDiv.style.border = 'none';
+        selectedWeaponDiv = null
       }
 
       function createExplosion(top, left) {
