@@ -101,7 +101,6 @@ function displayMessage(message) {
     style: {
       "font-size": "1.5em",
       "border-radius": "0.5em",
-      "text-transform": "capitalize"
     }
   }).showToast();
 }
