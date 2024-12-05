@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acerca de</title>
+  <style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+  }
+
+  .vertical-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #logo-container {
+    position: relative;
+    width: 150px;
+    height: 150px;
+  }
+  .square {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    left: 50px;
+    top: 50px;
+    background-color: black;
+    animation-duration: 1.5s;
+    animation-timing-function: ease;
+    animation-fill-mode: forwards;
+    border-radius: 7px;
+  }
+  .up {
+    animation-name: move-up;
+  }
+  .left {
+    animation-name: move-left;
+  }
+  .down {
+    animation-name: move-down;
+  }
+  .right {
+    animation-name: move-right;
+  }
+  @keyframes move-up {
+    100% {
+      transform: translateY(45px);
+      background-color: #51ca51;
+    }
+  }
+  @keyframes move-left {
+    100% {
+      transform: translateX(45px);
+      background-color: #5151ca;
+    }
+  }
+  @keyframes move-down {
+    100% {
+      transform: translateY(-45px);
+      background-color: #ca5151;
+    }
+  }
+  @keyframes move-right {
+    100% {
+      transform: translateX(-45px);
+      background-color: #caca51;
+    }
+  }
+
+
+  /* Estilo del botón/leyenda */
+  #proposito {
+    color: #007bff;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  #myModal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  .modal-content {
+    background-color: white;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 50%;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+  }
+
+  .close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .close:hover,
+  .close:focus {
+    color: black;
+  }
+
+
+  table {
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: center;
+    }
+
+    th {
+      background-color: #3498db;
+      color: white;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+
+    .winner {
+      font-weight: bold;
+      color: #2ecc71;
+    }
+
+    .draw {
+      font-weight: bold;
+      color: #e67e22;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="vertical-center">
+    <h2>🌌 ¡Bienvenido al server mundial del Piedra, Papel o Tijera! 🌟</h2>
+    <div id="logo-container">
+      <div class="square up"></div>
+      <div class="square left"></div>
+      <div class="square down"></div>
+      <div class="square right"></div>
+    </div>
+    <section>
+      <p>
+        Primero, 🪞 <strong>elige tu Emotar</strong>, ese alter ego que será tu avatar en este reino virtual, vagando entre dimensiones y en busca de valientes oponentes con quienes enfrentarse. ¿Qué figura serás en este universo? La decisión es tuya. 🌟
+      </p>
+      <h3>🕹️ Luego, tenés dos caminos a seguir:</h3>
+      <ul>
+        <li>✨ <strong>Crear un nuevo juego:</strong> deja el campo de <em>número de sala</em> vacío y genera un portal hacia una nueva arena de combate.</li>
+        <li>✨ <strong>Unirte a un juego existente:</strong> simplemente ingresa el <em>número de sala</em> y preparate para desafiar a otros aventureros.</li>
+      </ul>
+      <h3>📜 Reglas del destino (Piedra, Papel o Tijera):</h3>
+      <ul>
+        <li>✊ <strong>Piedra</strong> aplasta ✌️ Tijera</li>
+        <li>✋ <strong>Papel</strong> cubre ✊ Piedra</li>
+        <li>✌️ <strong>Tijera</strong> corta ✋ Papel</li>
+      </ul>
+      <h4>La elección es totalmente tuya, hazlo sabia, sagaz y meticulosamente. </h4>
+      <p>
+        🌠 <strong>¡Haz tu jugada y demuestra quién es el 👑 en estos pagos!</strong>
+      </p>
+      <a href="#" onclick="document.getElementById('possible-moves').style.display = 'table';this.style.display = 'none';">Quiero que me muestres todas jugadas posibles</a>
+    </section>
+    <table id="possible-moves" style="display: none;">
+      <thead>
+        <tr>
+          <th>Tu arma elegida</th>
+          <th>Arma del oponente</th>
+          <th>Resultado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Piedra</td>
+          <td>Piedra</td>
+          <td class="draw">Empate</td>
+        </tr>
+        <tr>
+          <td>Piedra</td>
+          <td>Papel</td>
+          <td>Pierdes</td>
+        </tr>
+        <tr>
+          <td>Piedra</td>
+          <td>Tijera</td>
+          <td class="winner">Ganas</td>
+        </tr>
+        <tr>
+          <td>Papel</td>
+          <td>Piedra</td>
+          <td class="winner">Ganas</td>
+        </tr>
+        <tr>
+          <td>Papel</td>
+          <td>Papel</td>
+          <td class="draw">Empate</td>
+        </tr>
+        <tr>
+          <td>Papel</td>
+          <td>Tijera</td>
+          <td>Pierdes</td>
+        </tr>
+        <tr>
+          <td>Tijera</td>
+          <td>Piedra</td>
+          <td>Pierdes</td>
+        </tr>
+        <tr>
+          <td>Tijera</td>
+          <td>Papel</td>
+          <td class="winner">Ganas</td>
+        </tr>
+        <tr>
+          <td>Tijera</td>
+          <td>Tijera</td>
+          <td class="draw">Empate</td>
+        </tr>
+      </tbody>
+    </table>
+    <h2><a href="https://github.com/vituchon/rock-paper-scissors">Código@github</a></h2>
+    <button onclick="document.getElementById('about-dialog').close()">Cerrar</button>
+  </div>
+</body>
+</html>

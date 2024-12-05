@@ -227,7 +227,7 @@
     });
   </script>
   <style>
-    #delete-games-button-container, #sound-button-container {
+    #delete-games-button-container, #sound-button-container, #about-button-container  {
       position: fixed;
       z-index: 1000;
     }
@@ -264,7 +264,7 @@
       right: 10px;
     }
 
-    #sound-button {
+    #sound-button, #about-button {
       background: linear-gradient(135deg, #3498db, #2980b9);
       color: white;
       font-size: 12px;
@@ -276,7 +276,7 @@
       box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
     }
 
-    #sound-button:hover {
+    #sound-button:hover, #about-button:hover {
       transform: scale(1.05);
       box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.3);
     }
@@ -284,6 +284,11 @@
     #sound-button:active {
       transform: scale(0.95);
       box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    #about-button-container {
+      bottom: 10px;
+      right: 10px;
     }
   </style>
 
@@ -298,6 +303,39 @@
       🔊 Sonido
     </button>
   </div>
+
+  <div id="about-button-container">
+    <button id="about-button" style="color: transparent;  text-shadow: 0 0 0 white;">❔</button>
+  </div>
+  <dialog id="about-dialog" style="max-width: 75%;"></dialog>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const aboutDialog = document.getElementById('about-dialog');
+      const openAboutDialogButton = document.getElementById('about-button');
+
+      openAboutDialogButton.addEventListener('click', async () => {
+        try {
+
+          const response = await fetch('/assets/about.html');
+          if (!response.ok) {
+            throw new Error('Error al cargar el contenido');
+          }
+
+          const content = await response.text();
+          aboutDialog.innerHTML = content;
+          aboutDialog.showModal();
+          aboutDialog.scrollTop = 0;
+        } catch (error) {
+          console.error('Error:', error);
+          alert('No se pudo cargar el contenido del diálogo.');
+        }
+      });
+
+      aboutDialog.addEventListener('close', () => {
+        console.log('Diálogo cerrado');
+      });
+    });
+  </script>
 
   <div id="emotar-selector-area" style="display: flex; flex-direction: column; align-items: center;">
     <div id="emotar-selector" class="container" >
@@ -315,7 +353,7 @@
   </div>
 
 
-  <div id="game-area" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+  <div id="game-area" style="display: none; flex-direction: column; align-items: center; justify-content: center;">
     <div id="game-description-container" style="display: flex; flex-direction: row; align-items: baseline;">
       <span id="game-description"></span>
       <div id="share-button-container">
