@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="/assets/app.js"></script>
 
-  <script type="text/javascript" src="/assets/server-api.js"></script>
-  <script type="text/javascript" src="/assets/ws.js"></script>
-
   <link rel="stylesheet" type="text/css" href="/assets/toastr.css">
   <script type="text/javascript" src="/assets/toastr.js"></script>
 
@@ -207,7 +204,8 @@
   </style>
 </head>
 <body>
-  <script>
+  <script type="module">
+    import * as ServerApi from "./assets/server-api.js"
     document.addEventListener('keydown', async function(event) {
       if (event.ctrlKey && event.key === 'x') {
         try {
@@ -398,7 +396,8 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    import * as ServerApi from "./assets/server-api.js"
     function initAppContainerScreen() {
       document.getElementById('delete-games-button').addEventListener('click', async () => {
         const confirmDelete = confirm('¿Estás seguro de que deseas borrar todos los juegos? Esta acción no se puede deshacer.');
@@ -428,7 +427,10 @@
     }
     initAppContainerScreen()
   </script>
-  <script>
+  <script type="module">
+    import * as ServerApi from "./assets/server-api.js"
+    import * as WebSockets from "./assets/ws.js";
+
     function initLandingScreen() {
       const emotars = [
         "🐵", "🐶", "🐺", "🦊", "🦝", "🐱", "🦁", "🐯",
@@ -691,7 +693,8 @@
       Buttons.fadeout("start-game", "restart-game")
     }
   </script>
-  <script>
+  <script type="module">
+    import * as ServerApi from "./assets/server-api.js"
     function initGameScreen() {
       const emogiWeapons = document.querySelectorAll(".weapon")
       emogiWeapons.forEach(emogiWeapon => {
@@ -742,7 +745,7 @@
           weaponClone.remove();
         }, 1000);
 
-        action  = {
+        let action = {
           player: app.clientPlayer,
           weapon: selectedWeaponDiv.innerText
         }
@@ -807,7 +810,8 @@
     }
     initGameScreen();
   </script>
-  <script>
+  <script type="module">
+    import * as ServerApi from "./assets/server-api.js"
     document.getElementById("share-button").addEventListener("click", () => {
       const currentUrl = window.location.origin + window.location.pathname;
 
