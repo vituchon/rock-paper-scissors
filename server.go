@@ -113,7 +113,6 @@ func buildRouter() *mux.Router {
 	apiPost("/games/{id:[0-9]+}/quit", controllers.QuitGame)
 	apiDelete("/games/{id:[0-9]+}", controllers.DeleteGame)
 	apiPost("/games/{id:[0-9]+}/perform-action", controllers.PerformAction)
-	apiPost("/games/{id:[0-9]+}/resolve-current-match", controllers.ResolveCurrentGameMatch)
 
 	apiGet("/games/{id:[0-9]+}/bind-ws", controllers.BindClientWebSocketToGame)
 	apiGet("/games/{id:[0-9]+}/unbind-ws", controllers.UnbindClientWebSocketInGame)

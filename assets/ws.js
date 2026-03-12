@@ -1,3 +1,5 @@
+"use strict";
+
 const normalCloseEventCode = 1000;
 const closeDescriptionByCode = {
     [normalCloseEventCode]: "CLOSE_NORMAL",

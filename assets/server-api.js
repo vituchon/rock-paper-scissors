@@ -189,27 +189,6 @@ class Service {
     });
   }
 
-  resolveCurrentMatch(game) {
-    const requestInit = {
-        method: 'POST',
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-        }
-    };
-    return fetch(`/api/v1/games/${game.id}/resolve-current-match`, requestInit).then((r) => {
-      if (!r.ok) {
-        return handleFetchResponseError(r);
-      }
-      return r.json().then((winnerPlayerId) => {
-        return winnerPlayerId
-      });
-    }).catch((err) => {
-      console.error('Failed to resolve current match:', err);
-      throw err;
-    });
-  }
-
   deleteAllGames() {
     const requestInit = {
         method: 'DELETE',

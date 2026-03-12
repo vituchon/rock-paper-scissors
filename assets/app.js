@@ -116,8 +116,8 @@ function displayErrorMessage(message) {
     style: {
       "font-size": "1em",
       "border-radius": "0.5em",
-      "background": "linear-gradient(135deg, #f0000f, #5477f5)",
-      "color": "yellow",
+      "background-color": "yellow",
+      "color": "red",
     }
   }).showToast();
 }

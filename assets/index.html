@@ -371,7 +371,6 @@
     <div id="no-man-land" class="container">
       <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <button id="start-game" style="display: none; opacity: 0; font-size: 3em;" disabled>Comenzar</button>
-        <button id="resolve-game" style="display: none; opacity: 0; font-size: 3em;">Resolver</button>
         <button id="restart-game" style="display: none; opacity: 0; font-size: 3em;">Otra vuelta!</button>
         <span id="winner-player-description">
           <span id="winner-player-name" style="font-size: 2em;"></span>
@@ -587,9 +586,7 @@
             modifyUIForGameStarted(app.game)
             break
           case "game-match-resolved": {
-              Buttons.fadeout("resolve-game").then(() => {
-                Buttons.fadein("inline-block", "restart-game")
-              })
+              Buttons.fadein("inline-block", "restart-game")
               let i = 1
               for (const [playerId, lastMove] of Object.entries(app.game.currentMatch.lastMoveByPlayerId)) {
                 let player = app.game.players.find(player => player.id === +playerId);
@@ -644,10 +641,19 @@
             break
           case "player-quit":
             break
-          case "player-action":
+          case "player-action": {
             app.game = notification.data.game
-            checkIfGameCanResolvedAndModifyUI(app.game)
+            let lastClientPlayerMove = app.game.currentMatch.lastMoveByPlayerId[app.clientPlayer.id]
+            if (!lastClientPlayerMove) {
+              displayMessage("El Enemigo ya elegió!")
+            } else {
+              const hasBothPlayersPlayed = Object.keys(app.game.currentMatch.lastMoveByPlayerId).length === 2
+              if (!hasBothPlayersPlayed) {
+                displayMessage("Esperando el movimiento del oponente...")
+              }
+            }
             break
+          }
           default:
             console.log("not processing ", notification?.kind);
             break;
@@ -659,20 +665,7 @@
       });
     }
 
-    function checkIfGameCanResolvedAndModifyUI(game) {
-      let canResolve = Object.keys(game.currentMatch.lastMoveByPlayerId).length == 2
-      if (canResolve)  {
-        Buttons.fadein("inline-block", "resolve-game")
-      } else {
-        let lastClientPlayerMove = app.game.currentMatch.lastMoveByPlayerId[app.clientPlayer.id]
-        if (!lastClientPlayerMove) {
-          displayMessage("El Nmigo ya elegió!")
-        }
-      }
-
-    }
-
-    function checkIfGameCanStartAndModiyUI(game) {
+function checkIfGameCanStartAndModiyUI(game) {
       if (game.players.length === 2) {
         displayMessage("Listo para comenzar!")
         Buttons.fadein("inline-block", "start-game")
@@ -792,12 +785,6 @@
         addEventIfNotRegistered(restartGame,'click', restartHandler);
         function restartHandler() {
           ServerApi.DefaultService.restartGame(app.game);
-        }
-
-        let resolveGame = document.getElementById("resolve-game")
-        addEventIfNotRegistered(resolveGame,'click', resolveHandler);
-        function resolveHandler() {
-          ServerApi.DefaultService.resolveCurrentMatch(app.game);
         }
 
         let startGame = document.getElementById("start-game")
